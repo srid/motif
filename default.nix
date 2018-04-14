@@ -34,6 +34,13 @@
       sha256 = "0j2j6x8wdc3jzpixaq4wrpb4873bj4jvqmfbhcybdqx8cl8v36yp";
     }; 
 
+    servant-reflex = pkgs.fetchFromGitHub {
+      owner = "imalsogreg";
+      repo = "servant-reflex";
+      rev = "115da63dbfac37c1fd4f5e652466778ac461e148";
+      sha256 = "1r829j3qy7vwcng7xpwfp2w5605i43w5x8g5skgd1iz7a5mfmq5i";
+    };
+
     skipTest = pkgs.haskell.lib.dontCheck;
     in 
     {
@@ -46,5 +53,7 @@
       servant-client = self.callCabal2nix "servant-client" "${servant}/servant-client" {};
       servant-client-core = self.callCabal2nix "servant-client-core" "${servant}/servant-client-core" {};
       servant-client-ghcjs = self.callCabal2nix "servant-client-ghcjs" "${servant}/servant-client-ghcjs" {};
+
+      servant-reflex = self.callCabal2nix "servant-reflex" "${servant-reflex}" {};
     };
 })

@@ -8,7 +8,7 @@
 module Common where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text.Lazy (Text)
+import Data.Text (Text)
 import GHC.Generics
 
 import Servant.API
