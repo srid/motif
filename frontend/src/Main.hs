@@ -15,7 +15,8 @@ import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import Reflex.Dom
+import Reflex.Dom (mainWidgetWithCss)
+import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 import Servant.Reflex
 
 import Common
@@ -25,11 +26,16 @@ serverUrl :: BaseUrl
 serverUrl = BaseFullUrl Http "localhost" 3001 "/"
 
 main :: IO ()
-main = mainWidget $ do
+main = mainWidgetWithCss css $ do
   result <- getPostBuild >>= motifClient
-  widgetHold_ (text "Loading...") $ ffor result $ \r -> case reqFailure r of
-    Just e -> text $ "Error: " <> e
-    Nothing -> el "tt" $ text $ "Response: " <> T.pack (show $ reqSuccess r)
+  widgetHold_ (text "Loading...") $ ffor result $ \r ->
+    container def $ case reqFailure r of
+      Just e -> paragraph $ text $ "Error: " <> e
+      Nothing -> paragraph $ el "tt" $ text $ "Response: " <> T.pack (show $ reqSuccess r)
+  where
+    css =
+      "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.0/semantic.min.css);\
+      \.asis { font-family: monospace; white-space: pre-wrap; }";
 
 motifClient
   :: forall t m. MonadWidget t m
@@ -40,4 +46,3 @@ motifClient = client
   (Proxy :: Proxy m)
   (Proxy :: Proxy ())
   (constDyn serverUrl)
-

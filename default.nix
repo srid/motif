@@ -41,6 +41,13 @@
       sha256 = "1r829j3qy7vwcng7xpwfp2w5605i43w5x8g5skgd1iz7a5mfmq5i";
     };
 
+    semantic-reflex = pkgs.fetchFromGitHub {
+      owner = "tomsmalley";
+      repo = "semantic-reflex";
+      rev = "b6075f6b052de5071b16c9d29526dda44ea4c092";
+      sha256 = "1scwwcvj0ycd6zd5i01d1w03c4xifrrs5ywwyylp38fqz62zm21g";
+    };
+
     skipTest = pkgs.haskell.lib.dontCheck;
     in 
     {
@@ -53,7 +60,8 @@
       servant-client = self.callCabal2nix "servant-client" "${servant}/servant-client" {};
       servant-client-core = self.callCabal2nix "servant-client-core" "${servant}/servant-client-core" {};
       servant-client-ghcjs = self.callCabal2nix "servant-client-ghcjs" "${servant}/servant-client-ghcjs" {};
-
       servant-reflex = self.callCabal2nix "servant-reflex" "${servant-reflex}" {};
+
+      semantic-reflex = self.callCabal2nix "semantic-reflex" "${semantic-reflex}/semantic-reflex" {};
     };
 })
