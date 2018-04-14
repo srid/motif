@@ -1,4 +1,6 @@
 dist*
 result
+frontend-result
+cabal.project.local
 *.code-workspace
 ghcid*txt
