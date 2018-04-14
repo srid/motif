@@ -1,4 +1,8 @@
 module Main where
 
+import Control.Monad.Reader
+
+import Backend.Server
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = runServer `runReaderT` Env
