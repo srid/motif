@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+PORT=$1
+if [ -z $PORT ]
+then
+  PORT=8081
+fi
+
+nix-shell -A shells.ghc --run "hoogle serve --local -p $PORT"
