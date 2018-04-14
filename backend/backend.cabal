@@ -17,9 +17,23 @@ cabal-version:       >=1.10
 executable backend
   main-is:             Main.hs
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base >=4.9 && <4.11
-                     , common
+  build-depends:       
+    aeson,
+    base >=4.9 && <4.11,
+    bytestring,
+    common,
+    directory,
+    filepath,
+    lens,
+    lifted-async,
+    lifted-base,
+    optparse-applicative,
+    servant >=0.12,
+    servant-server >=0.12,
+    text,
+    wai,
+    wai-cors,
+    wai-extra,
+    warp
   hs-source-dirs:      src
   default-language:    Haskell2010
