@@ -14,6 +14,8 @@ import Data.Monoid ((<>))
 
 import Servant
 import Servant.Server (hoistServer)
+import Test.QuickCheck (generate)
+import Test.QuickCheck.Arbitrary (arbitrary)
 
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (simpleCors)
@@ -35,7 +37,10 @@ motifAPI = Proxy
 motifServer :: ServerT MotifAPI AppM
 motifServer = do
   _e <- ask
-  return $ Right $ Motif "Hello" "World"
+  liftIO $ Right <$> sample
+
+sample :: IO Motif
+sample = Motif "Hello" . MomentTree <$> generate arbitrary
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)
