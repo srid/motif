@@ -38,11 +38,20 @@ main = mainWidgetWithCss css $ do
 -- TODO: Nice and cool tree UI
 -- 1. Expand collapse, and save 'tree state'
 drawTree :: (UI t m, IsMoment a) => Tree a -> m ()
-drawTree = \case
-  Leaf v -> paragraph $ moment v
-  Node v t ->  do
-    header def $ moment v
-    segment def $ forM_ t drawTree
+drawTree t = go [t]
+  where
+    go = \case
+      [] -> blank
+      xs -> list def $ forM_ xs $ \case
+        Leaf v -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+          listHeader $ do
+            text $ getText v
+            forM_ (getContext v) $ label def . text . tshow
+          listDescription $ text "Leaf content"
+        Node v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+          listHeader $ text $ getText v
+          listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
+          go xs'
 
 moment :: (UI t m, IsMoment a) => a -> m ()
 moment v = do
@@ -62,3 +71,4 @@ motifClient = client
   (Proxy :: Proxy m)
   (Proxy :: Proxy ())
   (constDyn serverUrl)
+
