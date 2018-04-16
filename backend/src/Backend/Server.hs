@@ -41,6 +41,7 @@ motifServer = do
 
 sample :: IO Motif
 sample = Motif "Hello" . MomentTree <$> generate arbitrary
+-- TODO: ^ start using real data.
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)

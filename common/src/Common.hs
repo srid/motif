@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
@@ -7,10 +8,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 module Common where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Default
 import Data.List (nub)
 import Data.String (IsString (fromString))
 import Data.Text (Text)
@@ -29,8 +32,8 @@ data Motif = Motif
 
 data Tree a
   = Leaf a
-  | Node a [Tree a]
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+  | Node NodeState a [Tree a]
+  deriving (Generic, Eq, Ord, Show, Functor, ToJSON, FromJSON)
 
 instance Arbitrary a => Arbitrary (Tree a) where
   arbitrary =
@@ -39,10 +42,19 @@ instance Arbitrary a => Arbitrary (Tree a) where
       node = do
         s <- arbitrary
         children <- scale (min 3) $ listOf arbitrary
-        return $ Node s children
+        return $ Node def s children
 
 foldUp :: a -> [Tree a] -> Tree a
-foldUp = Node
+foldUp = Node def
+
+data NodeState = NodeState
+  { _nodeStateDummy :: Bool
+  , _nodeStateOpen :: Bool
+  }
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+
+instance Default NodeState where
+  def = NodeState True True
 
 newtype MomentTree = MomentTree { unMomentTree :: Tree Moment }
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
@@ -55,6 +67,28 @@ instance IsString Content where
 
 data Moment
   = MomentJournal [Context] Content
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+
+-- Future types!
+data MomentOtherExamples
+  = MomentFoodLog [Context] [(Food, Int)]
+  | MomentActualism [Context] Feeling Content
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+data Food
+  = Coffee
+  | Croissant
+  | BeefRibeyeGrams
+  | LambBurgerGrams
+  | Egg
+  | Butter
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+data Feeling
+  = Terrible
+  | Bad
+  | Neutral
+  | Good
+  | Great
+  | Perfect
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
 instance Arbitrary Moment where

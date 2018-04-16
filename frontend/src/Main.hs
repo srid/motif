@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -8,7 +9,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-
 module Main where
 
 import Control.Monad (forM_)
@@ -48,7 +48,8 @@ drawTree t = go [t]
             text $ getText v
             forM_ (getContext v) $ label def . text . tshow
           listDescription $ text "Leaf content"
-        Node v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+        Node _state v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+          -- TODO: Show children only if `_state[open]`.
           listHeader $ text $ getText v
           listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
           go xs'
