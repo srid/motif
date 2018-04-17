@@ -7,17 +7,19 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 module Main where
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, void)
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
+import Servant.API
 import Servant.Reflex
 
 import Common
@@ -28,13 +30,29 @@ serverUrl :: BaseUrl
 serverUrl = BaseFullUrl Http "localhost" 3001 "/"
 
 main :: IO ()
-main = mainWidgetWithCss css $ do
-  result <- getPostBuild >>= motifClient
-  widgetHold_ (text "Loading...") $ ffor result $ \r ->
-    container def $ withMotifResult r (text . ("Error: " <>)) $
-      drawTree . unMomentTree . _motifMomentTree
+main = mainWidgetWithCss css app
   where
     css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.0/semantic.min.css);"
+
+app :: forall t m. MonadWidget t m => m ()
+app = do
+  pb <- getPostBuild
+  result <- getMotif pb
+  widgetHold_ (text "Loading...") $ ffor result $ \r ->
+    container def $ withMotifResult r (text . ("Error: " <>)) $ \t -> do
+      rec treeDyn <- holdDyn t updatedTree
+          updatedTree <- drawTree' treeDyn
+      return ()
+  where
+    (getMotif :<|> postMotif) =
+        client (Proxy :: Proxy MotifAPI) (Proxy :: Proxy m) (Proxy :: Proxy ()) (constDyn serverUrl)
+    drawTree' :: UI t m => Dynamic t Motif -> m (Event t Motif)
+    drawTree' motifDyn = do
+      -- TODO: Clean it up
+      evt <- button def $ text "Refresh"
+      void $ dyn $ ffor motifDyn $ drawTree . unMomentTree . _motifMomentTree
+      result <- postMotif (Right <$> motifDyn) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
+      return $ filterRight $ unzipMotifResult <$> result
 
 -- TODO: Nice and cool tree UI
 -- 1. Expand collapse, and save 'tree state'
@@ -61,16 +79,11 @@ moment v = do
   forM_ (getContext v) $ label def . text . tshow
 
 withMotifResult :: UI t m => ReqResult tag (Either Text a) -> (Text -> m ()) -> (a -> m ()) -> m ()
-withMotifResult r ef sf = case r of
-  ResponseFailure _ s _ -> ef s
-  RequestFailure _ s -> ef s
-  ResponseSuccess _ (Left s) _ -> ef s
-  ResponseSuccess _ (Right v) _ -> sf v
+withMotifResult r ef sf = either ef sf $ unzipMotifResult r
 
-motifClient :: forall t m. MonadWidget t m => Event t () -> m (Event t (ReqResult () (Either Text Motif)))
-motifClient = client
-  (Proxy :: Proxy MotifAPI)
-  (Proxy :: Proxy m)
-  (Proxy :: Proxy ())
-  (constDyn serverUrl)
-
+unzipMotifResult :: ReqResult tag (Either Text a) -> Either Text a
+unzipMotifResult r = case r of
+  ResponseFailure _ s _ -> Left s
+  RequestFailure _ s -> Left s
+  ResponseSuccess _ (Left s) _ -> Left s
+  ResponseSuccess _ (Right v) _ -> Right v

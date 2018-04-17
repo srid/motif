@@ -74,7 +74,9 @@ instance IsMoment Moment where
   getText = \case
     MomentJournal _ s -> unContent s
 
-type MotifAPI = "motif" :> Get '[JSON] (Either Text Motif)
+type MotifAPI =
+  "motif" :> Get '[JSON] (Either Text Motif)
+  :<|> "motif" :> ReqBody '[JSON] Motif :> Post '[JSON] (Either Text Motif)
 
 --------------------
 --- Future types!
