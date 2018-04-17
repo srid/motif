@@ -14,17 +14,15 @@ import Control.Monad.Reader
 import Data.Monoid ((<>))
 import Data.Text (Text)
 
+import Data.Tree
 import Servant
 import Servant.Server (hoistServer)
-import Test.QuickCheck (generate)
-import Test.QuickCheck.Arbitrary (arbitrary)
 
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (cors, corsRequestHeaders, simpleCorsResourcePolicy)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 import Common
-import Common.Tree
 
 data Env = Env {}
   deriving (Eq, Show, Ord)
@@ -48,8 +46,11 @@ motifServer = getMotif :<|> postMotif
       liftIO $ Right <$> sample
 
 sample :: IO Motif
-sample = Motif "Hello" . MomentTree <$> generate arbitrary
--- TODO: ^ start using real data.
+sample = return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m1 [], Node m3 []], Node m3 []]
+  where
+    m1 = MomentJournal [ContextFoo] "Hello world"
+    m2 = MomentJournal [ContextFoo] "Buy milk"
+    m3 = MomentJournal [ContextBar] "Catch a fish"
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)

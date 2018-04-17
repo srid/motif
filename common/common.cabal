@@ -20,9 +20,9 @@ library
   build-depends:       
     aeson,
     base >=4.9 && <4.11,
+    containers,
     data-default,
     dependent-map,
-    QuickCheck,
     servant,
     text,
     time

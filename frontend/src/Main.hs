@@ -16,6 +16,7 @@ import Control.Monad (forM_, void)
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
+import Data.Tree hiding (drawTree)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
@@ -23,7 +24,6 @@ import Servant.API
 import Servant.Reflex
 
 import Common
-import Common.Tree (Id (..), Tree (..))
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl
@@ -62,12 +62,12 @@ drawTree t = go [t]
     go = \case
       [] -> blank
       xs -> list def $ forM_ xs $ \case
-        Leaf v -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+        Node v [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
           listHeader $ do
             text $ getText v
             forM_ (getContext v) $ label def . text . tshow
           listDescription $ text "Leaf content"
-        Node _state v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+        Node v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
           -- TODO: Show children only if `_state[open]`.
           listHeader $ text $ getText v
           listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
