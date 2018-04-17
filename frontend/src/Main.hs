@@ -23,7 +23,7 @@ import Servant.API
 import Servant.Reflex
 
 import Common
-import Common.Tree (Tree (..))
+import Common.Tree (Id (..), Tree (..))
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl
@@ -51,7 +51,7 @@ app = do
       -- TODO: Clean it up
       evt <- button def $ text "Refresh"
       void $ dyn $ ffor motifDyn $ drawTree . unMomentTree . _motifMomentTree
-      result <- postMotif (Right <$> motifDyn) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
+      result <- postMotif (constDyn $ Right (Id "TODO-ID", True)) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
       return $ filterRight $ unzipMotifResult <$> result
 
 -- TODO: Nice and cool tree UI

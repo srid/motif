@@ -11,6 +11,7 @@ module Common.Tree where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Default
+import Data.Text (Text)
 import GHC.Generics
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Gen
@@ -29,8 +30,8 @@ instance Arbitrary a => Arbitrary (Tree a) where
         children <- scale (min 3) $ listOf arbitrary
         return $ Node def s children
 
-foldUp :: a -> [Tree a] -> Tree a
-foldUp = Node def
+newtype Id = Id { unId :: Text }
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
 data NodeState = NodeState
   { _nodeStateDummy :: Bool

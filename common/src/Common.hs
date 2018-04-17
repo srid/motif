@@ -76,7 +76,7 @@ instance IsMoment Moment where
 
 type MotifAPI =
   "motif" :> Get '[JSON] (Either Text Motif)
-  :<|> "motif" :> ReqBody '[JSON] Motif :> Post '[JSON] (Either Text Motif)
+  :<|> "collapse-state" :> ReqBody '[JSON] (Id, Bool) :> Post '[JSON] (Either Text Motif)
 
 --------------------
 --- Future types!

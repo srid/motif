@@ -24,6 +24,7 @@ import Network.Wai.Middleware.Cors (cors, corsRequestHeaders, simpleCorsResource
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 import Common
+import Common.Tree
 
 data Env = Env {}
   deriving (Eq, Show, Ord)
@@ -42,8 +43,8 @@ motifServer = getMotif :<|> postMotif
     getMotif :: AppM (Either Text Motif)
     getMotif = do
       liftIO $ Right <$> sample
-    postMotif :: Motif -> AppM (Either Text Motif)
-    postMotif _foo = do
+    postMotif :: (Id, Bool) -> AppM (Either Text Motif)
+    postMotif (_id', _collapsed) = do
       liftIO $ Right <$> sample
 
 sample :: IO Motif
