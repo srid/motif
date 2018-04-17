@@ -13,10 +13,12 @@
 module Main where
 
 import Control.Monad (forM_, void)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
+import qualified Data.UUID as UUID
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
@@ -49,9 +51,10 @@ app = do
     drawTree' :: UI t m => Dynamic t Motif -> m (Event t Motif)
     drawTree' motifDyn = do
       -- TODO: Clean it up
-      evt <- button def $ text "Refresh"
+      evt <- button def $ text "POST"
       void $ dyn $ ffor motifDyn $ drawTree . unMomentTree . _motifMomentTree
-      result <- postMotif (constDyn $ Right (Id "TODO-ID", True)) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
+      let someUuid = fromJust $ UUID.fromString "550e8400-e29b-41d4-a716-446655440000"
+      result <- postMotif (constDyn $ Right (someUuid, True)) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
       return $ filterRight $ unzipMotifResult <$> result
 
 -- TODO: Nice and cool tree UI

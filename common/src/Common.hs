@@ -10,17 +10,26 @@
 module Common where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Default
 import Data.String (IsString (fromString))
 import Data.Text (Text)
 import Data.Tree
+import Data.UUID (UUID)
 import GHC.Generics
 
 import qualified Data.Text as T
 import Servant.API
 
-
-newtype Id = Id { unId :: Text }
+data NodeState = NodeState
+  { _nodeStateDummy :: Bool
+  , _nodeStateOpen :: Bool
+  }
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+
+type MotifTree a = Tree (UUID, NodeState, a)
+
+instance Default NodeState where
+  def = NodeState True True
 
 data Motif = Motif
   { _motifHello :: Text
@@ -28,7 +37,7 @@ data Motif = Motif
   }
   deriving (Generic, Show, ToJSON, FromJSON)
 
-newtype MomentTree = MomentTree { unMomentTree :: Tree Moment }
+newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
   deriving (Generic, Eq, Show, ToJSON, FromJSON)
 
 data Moment
@@ -57,9 +66,13 @@ instance IsMoment Moment where
   getText = \case
     MomentJournal _ s -> unContent s
 
+instance IsMoment c => IsMoment (a, b, c) where
+  getContext (_, _, x) = getContext x
+  getText (_, _, x) = getText x
+
 type MotifAPI =
   "motif" :> Get '[JSON] (Either Text Motif)
-  :<|> "collapse-state" :> ReqBody '[JSON] (Id, Bool) :> Post '[JSON] (Either Text Motif)
+  :<|> "collapse-state" :> ReqBody '[JSON] (UUID, Bool) :> Post '[JSON] (Either Text Motif)
 
 --------------------
 --- Future types!
@@ -83,4 +96,3 @@ data Feeling
   | Great
   | Perfect
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
-

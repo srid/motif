@@ -6,15 +6,19 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 module Backend.Server (runServer, Env(..)) where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
+import Data.Default (def)
 import Data.Monoid ((<>))
 import Data.Text (Text)
-
 import Data.Tree
+import Data.UUID (UUID)
+import Data.UUID.V4 (nextRandom)
+
 import Servant
 import Servant.Server (hoistServer)
 
@@ -41,16 +45,20 @@ motifServer = getMotif :<|> postMotif
     getMotif :: AppM (Either Text Motif)
     getMotif = do
       liftIO $ Right <$> sample
-    postMotif :: (Id, Bool) -> AppM (Either Text Motif)
+    postMotif :: (UUID, Bool) -> AppM (Either Text Motif)
     postMotif (_id', _collapsed) = do
       liftIO $ Right <$> sample
 
 sample :: IO Motif
-sample = return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m1 [], Node m3 []], Node m3 []]
-  where
-    m1 = MomentJournal [ContextFoo] "Hello world"
-    m2 = MomentJournal [ContextFoo] "Buy milk"
-    m3 = MomentJournal [ContextBar] "Catch a fish"
+sample = do
+  let st = def :: NodeState
+  u1 <- nextRandom
+  let m1 = (u1, st,) $ MomentJournal [ContextFoo] "Hello world"
+  u2 <- nextRandom
+  let m2 = (u2, st,) $ MomentJournal [ContextFoo] "Buy milk"
+  u3 <- nextRandom
+  let m3 = (u3, st,) $ MomentJournal [ContextBar] "Catch a fish"
+  return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m1 [], Node m3 []], Node m3 []]
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)

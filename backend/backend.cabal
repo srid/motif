@@ -33,6 +33,7 @@ executable backend
     servant-server >=0.12,
     text,
     time,
+    uuid,
     wai,
     wai-cors,
     wai-extra,
