@@ -21,6 +21,7 @@ import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 import Servant.Reflex
 
 import Common
+import Common.Tree (Tree (..))
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl
