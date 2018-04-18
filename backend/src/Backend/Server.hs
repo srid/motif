@@ -41,16 +41,17 @@ motifAPI :: Proxy MotifAPI
 motifAPI = Proxy
 
 motifServer :: ServerT MotifAPI AppM
-motifServer = getMotif :<|> postMotif
+motifServer = getMotif :<|> sendAction
   where
     getMotif :: AppM (Either Text Motif)
     getMotif =
       liftIO $ Right <$> sample
-    postMotif :: (UUID, NodeState) -> AppM (Either Text Motif)
-    postMotif (id', state) = do
-      s <- liftIO sample
-      let s' = setState id' state $ unMomentTree $ _motifMomentTree s
-      return $ Right $ Motif "changed" $ MomentTree s'
+    sendAction :: MotifAction -> AppM (Either Text Motif)
+    sendAction = \case
+      MotifActionSetNodeState id' state -> do
+        s <- liftIO sample
+        let s' = setState id' state $ unMomentTree $ _motifMomentTree s
+        return $ Right $ Motif "changed" $ MomentTree s'
 
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =

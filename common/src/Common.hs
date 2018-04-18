@@ -70,9 +70,13 @@ instance IsMoment c => IsMoment (a, b, c) where
   getContext (_, _, x) = getContext x
   getText (_, _, x) = getText x
 
+data MotifAction
+  = MotifActionSetNodeState UUID NodeState
+  deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
+
 type MotifAPI =
   "motif" :> Get '[JSON] (Either Text Motif)
-  :<|> "set-state" :> ReqBody '[JSON] (UUID, NodeState) :> Post '[JSON] (Either Text Motif)
+  :<|> "motif-action" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text Motif)
 
 --------------------
 --- Future types!
