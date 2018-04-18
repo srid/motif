@@ -24,6 +24,7 @@ import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 import Common
 
 import qualified Frontend.Client as Client
+import Frontend.Ouroboros
 
 main :: IO ()
 main = mainWidgetWithCss css app
@@ -31,21 +32,11 @@ main = mainWidgetWithCss css app
     css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.0/semantic.min.css);"
 
 app :: forall t m. MonadWidget t m => m ()
-app = do
-  result <- Client.getMotif =<< getPostBuild
-  widgetHold_ (text "Loading...") $ ffor result $ \r ->
-    container def $ Client.withResult r (text . ("Error: " <>)) $ \t -> do
-      rec treeDyn <- holdDyn t updatedTree
-          updatedTree <- renderAndUpdate drawTree treeDyn
-      return ()
-  where
-    renderAndUpdate :: UI t m => (Motif -> m (Event t MotifAction)) -> Dynamic t Motif -> m (Event t Motif)
-    renderAndUpdate f d = do
-      e' <- dyn $ ffor d f
-      e <- switch <$> hold never e'
-      filterRight <$> Client.unzipResult <<$>> Client.sendAction e
+app = ouroboros
+  (fmap (Client.unzipResult <$>) . Client.getMotif)
+  drawTree
+  (fmap (Client.unzipResult <$>) . Client.sendAction)
 
--- TODO: Nice and cool tree UI
 -- 1. Expand collapse, and save 'tree state'
 drawTree :: UI t m => Motif -> m (Event t MotifAction)
 drawTree t = go [unMomentTree $ _motifMomentTree t]

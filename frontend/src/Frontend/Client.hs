@@ -57,6 +57,8 @@ patchServantClientF f evt = do
 withResult :: UI t m => ReqResult tag (Either Text a) -> (Text -> m ()) -> (a -> m ()) -> m ()
 withResult r ef sf = either ef sf $ unzipResult r
 
+-- | Flatten the two level errors into one.
+-- TODO: At one point we want to treat these errors differently.
 unzipResult :: ReqResult tag (Either Text a) -> Either Text a
 unzipResult r = case r of
   ResponseFailure _ s _ -> Left s
