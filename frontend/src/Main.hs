@@ -10,22 +10,23 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 module Main where
 
 import Control.Monad (forM, forM_)
 import Data.Default (Default (def))
 import Data.Monoid ((<>))
-import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
 import Data.UUID (UUID)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
-import Servant.API
 import Servant.Reflex
 
 import Common
+
+import qualified Frontend.Client as Client
 
 data MotifAction
   = MotifActionSetNodeState UUID NodeState
@@ -43,33 +44,31 @@ main = mainWidgetWithCss css app
 app :: forall t m. MonadWidget t m => m ()
 app = do
   pb <- getPostBuild
-  result <- getMotif pb
+  result <- Client.getMotif pb
   widgetHold_ (text "Loading...") $ ffor result $ \r ->
     container def $ withMotifResult r (text . ("Error: " <>)) $ \t -> do
       rec treeDyn <- holdDyn t updatedTree
           updatedTree <- renderAndUpdate drawTree treeDyn
       return ()
   where
-    (getMotif :<|> postMotif) =
-        client (Proxy :: Proxy MotifAPI) (Proxy :: Proxy m) (Proxy :: Proxy ()) (constDyn serverUrl)
     applyAction :: MonadWidget t m => Event t MotifAction -> m (Event t (ReqResult () (Either Text Motif)))
     applyAction evt = do
       let setNodeState = fforMaybe evt $ \case
             MotifActionSetNodeState id' state -> Just (id', state)
-      danceAround postMotif setNodeState
+      requestingClient Client.editMotif setNodeState
     renderAndUpdate :: UI t m => (Motif -> m (Event t MotifAction)) -> Dynamic t Motif -> m (Event t Motif)
     renderAndUpdate f d = do
       e' <- dyn $ ffor d f
       e <- switch <$> hold never e'
       filterRight <$> unzipMotifResult <<$>> applyAction e
 
-danceAround
+requestingClient
   :: MonadWidget t m
   => (Dynamic t (Either Text a) -> Event t () -> m (Event t r))
   -> Event t a
   -> m (Event t r)
-danceAround f evt = do
-  d <- holdDyn (Left "Oh GAWD FIXME") $ Right <$> evt
+requestingClient f evt = do
+  d <- holdDyn (Left "No value yet") $ Right <$> evt
   f d $ () <$ evt
 
 -- TODO: Nice and cool tree UI
