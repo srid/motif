@@ -12,12 +12,14 @@
 {-# LANGUAGE TypeFamilies #-}
 module Main where
 
-import Control.Monad (forM_, void)
+import Control.Monad (forM, forM_, void)
+import Data.Default (Default (def))
 import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
+import Data.UUID (UUID)
 import qualified Data.UUID as UUID
 
 import Reflex.Dom (mainWidgetWithCss)
@@ -26,6 +28,10 @@ import Servant.API
 import Servant.Reflex
 
 import Common
+
+data MotifAction
+  = MotifActionSetNodeState UUID NodeState
+  deriving (Eq, Show, Ord)
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl
@@ -48,33 +54,54 @@ app = do
   where
     (getMotif :<|> postMotif) =
         client (Proxy :: Proxy MotifAPI) (Proxy :: Proxy m) (Proxy :: Proxy ()) (constDyn serverUrl)
+    applyAction :: MonadWidget t m => Event t MotifAction -> m (Event t (ReqResult () (Either Text Motif)))
+    applyAction evt = do
+      let setNodeState = fforMaybe evt $ \case
+            MotifActionSetNodeState id' state -> Just (id', state)
+      danceAround postMotif setNodeState
     drawTree' :: UI t m => Dynamic t Motif -> m (Event t Motif)
     drawTree' motifDyn = do
       -- TODO: Clean it up
       evt <- button def $ text "POST"
       void $ dyn $ ffor motifDyn $ drawTree . unMomentTree . _motifMomentTree
       let someUuid = fromJust $ UUID.fromString "550e8400-e29b-41d4-a716-446655440000"
-      result <- postMotif (constDyn $ Right (someUuid, True)) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
+      result <- postMotif (constDyn $ Right (someUuid, def)) evt  -- XXX: <-- Here we pass the updated motif dyn to save it
       return $ filterRight $ unzipMotifResult <$> result
+
+danceAround
+  :: MonadWidget t m
+  => (Dynamic t (Either Text a) -> Event t () -> m (Event t r))
+  -> Event t a
+  -> m (Event t r)
+danceAround f evt = do
+  d <- holdDyn (Left "Oh GAWD FIXME") $ Right <$> evt
+  f d $ () <$ evt
+
 
 -- TODO: Nice and cool tree UI
 -- 1. Expand collapse, and save 'tree state'
-drawTree :: (UI t m, IsMoment a) => Tree a -> m ()
+drawTree :: UI t m => MotifTree Moment -> m (Event t MotifAction)
 drawTree t = go [t]
   where
     go = \case
-      [] -> blank
-      xs -> list def $ forM_ xs $ \case
-        Node v [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
-          listHeader $ do
-            text $ getText v
-            forM_ (getContext v) $ label def . text . tshow
-          listDescription $ text "Leaf content"
-        Node v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
-          -- TODO: Show children only if `_state[open]`.
-          listHeader $ text $ getText v
-          listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
-          go xs'
+      [] -> do
+        blank
+        return never
+      xs -> do
+        evts <- list def $ forM xs $ \case
+          Node v [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+            listHeader $ do
+              text $ getText v
+              forM_ (getContext v) $ label def . text . tshow
+            listDescription $ text "Leaf content"
+            return never
+          Node v xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+            -- TODO: Show children only if `_state[open]`.
+            listHeader $ text $ getText v
+            listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
+            go xs'
+            return never
+        return $ leftmost evts
 
 moment :: (UI t m, IsMoment a) => a -> m ()
 moment v = do
@@ -90,3 +117,4 @@ unzipMotifResult r = case r of
   RequestFailure _ s -> Left s
   ResponseSuccess _ (Left s) _ -> Left s
   ResponseSuccess _ (Right v) _ -> Right v
+

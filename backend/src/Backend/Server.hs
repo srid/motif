@@ -43,10 +43,10 @@ motifServer :: ServerT MotifAPI AppM
 motifServer = getMotif :<|> postMotif
   where
     getMotif :: AppM (Either Text Motif)
-    getMotif = do
+    getMotif =
       liftIO $ Right <$> sample
-    postMotif :: (UUID, Bool) -> AppM (Either Text Motif)
-    postMotif (_id', _collapsed) = do
+    postMotif :: (UUID, NodeState) -> AppM (Either Text Motif)
+    postMotif (_id', _collapsed) =
       liftIO $ Right <$> sample
 
 sample :: IO Motif
