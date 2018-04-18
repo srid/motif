@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PartialTypeSignatures #-}
@@ -46,8 +47,19 @@ motifServer = getMotif :<|> postMotif
     getMotif =
       liftIO $ Right <$> sample
     postMotif :: (UUID, NodeState) -> AppM (Either Text Motif)
-    postMotif (_id', _collapsed) =
-      liftIO $ Right <$> sample
+    postMotif (id', state) = do
+      s <- liftIO sample
+      let s' = setState id' state $ unMomentTree $ _motifMomentTree s
+      return $ Right $ Motif "changed" $ MomentTree s'
+
+setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
+setState id' state =
+  -- TODO: replace with map
+  \case
+    Node v@(id'', _oldState, x) c ->
+      if id'' == id' -- XXX: This doesn't obviously work as we are regenerating random sample IDs
+        then Node (id', state, x) c
+        else Node v c
 
 sample :: IO Motif
 sample = do
@@ -58,7 +70,7 @@ sample = do
   let m2 = (u2, st,) $ MomentJournal [ContextFoo] "Buy milk"
   u3 <- nextRandom
   let m3 = (u3, st,) $ MomentJournal [ContextBar] "Catch a fish"
-  return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m1 [], Node m3 []], Node m3 []]
+  return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m3 [], Node m3 []], Node m3 []]
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)

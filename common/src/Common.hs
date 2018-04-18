@@ -96,3 +96,9 @@ data Feeling
   | Great
   | Perfect
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+
+(<<$>>) :: (Functor f2, Functor f1) => (a -> b) -> f1 (f2 a) -> f1 (f2 b)
+(<<$>>) = fmap . fmap
+
+(<<$) :: (Functor f2, Functor f1) => a -> f1 (f2 b) -> f1 (f2 a)
+v <<$ f = fmap (v <$) f
