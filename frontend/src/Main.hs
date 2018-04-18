@@ -34,7 +34,7 @@ app :: forall t m. MonadWidget t m => m ()
 app = do
   result <- Client.getMotif =<< getPostBuild
   widgetHold_ (text "Loading...") $ ffor result $ \r ->
-    container def $ Client.withMotifResult r (text . ("Error: " <>)) $ \t -> do
+    container def $ Client.withResult r (text . ("Error: " <>)) $ \t -> do
       rec treeDyn <- holdDyn t updatedTree
           updatedTree <- renderAndUpdate drawTree treeDyn
       return ()
@@ -43,7 +43,7 @@ app = do
     renderAndUpdate f d = do
       e' <- dyn $ ffor d f
       e <- switch <$> hold never e'
-      filterRight <$> Client.unzipMotifResult <<$>> Client.requestingClient Client.sendAction e
+      filterRight <$> Client.unzipResult <<$>> Client.sendAction e
 
 -- TODO: Nice and cool tree UI
 -- 1. Expand collapse, and save 'tree state'
