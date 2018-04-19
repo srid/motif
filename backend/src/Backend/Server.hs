@@ -41,13 +41,12 @@ motifAPI :: Proxy MotifAPI
 motifAPI = Proxy
 
 motifServer :: ServerT MotifAPI AppM
-motifServer = getMotif :<|> sendAction
+motifServer = sendAction
   where
-    getMotif :: AppM (Either Text Motif)
-    getMotif =
-      liftIO $ Right <$> sample
     sendAction :: MotifAction -> AppM (Either Text Motif)
     sendAction = \case
+      MotifActionGet ->
+        liftIO $ Right <$> sample
       MotifActionSetNodeState id' state -> do
         s <- liftIO sample
         let s' = setState id' state $ unMomentTree $ _motifMomentTree s
@@ -62,6 +61,8 @@ setState id' state =
         then Node (id', state, x) c
         else Node v c
 
+-- TODO: Use real data; actual items below:
+-- 1. Read this http://www.aosabook.org/en/posa/warp.html
 sample :: IO Motif
 sample = do
   let st = def :: NodeState

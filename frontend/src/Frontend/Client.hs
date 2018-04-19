@@ -10,9 +10,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 module Frontend.Client
-  ( getMotif
-  , sendAction
-  , withResult
+  ( sendAction
   , unzipResult
   ) where
 
@@ -20,7 +18,6 @@ import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 
 import Reflex.Dom.SemanticUI
-import Servant.API
 import Servant.Reflex
 
 import Common
@@ -29,15 +26,13 @@ import Common
 serverUrl :: BaseUrl
 serverUrl = BaseFullUrl Http "localhost" 3001 "/"
 
-type GetMotif t m = Event t () -> m (Event t (ReqResult () (Either Text Motif)))
 type SendAction t m = Dynamic t (Either Text MotifAction) -> Event t () -> m (Event t (ReqResult () (Either Text Motif)))
 
-motifClient :: forall t m. MonadWidget t m => GetMotif t m :<|> SendAction t m
+motifClient :: forall t m. MonadWidget t m => SendAction t m
 motifClient = client (Proxy :: Proxy MotifAPI) (Proxy :: Proxy m) (Proxy :: Proxy ()) (constDyn serverUrl)
 
-getMotif :: MonadWidget t m => GetMotif t m
 sendAction' :: MonadWidget t m => SendAction t m
-getMotif :<|> sendAction' = motifClient
+sendAction' = motifClient
 
 sendAction
   :: forall t m. MonadWidget t m
@@ -53,9 +48,6 @@ patchServantClientF
 patchServantClientF f evt = do
   d <- holdDyn (Left "No value yet") $ Right <$> evt
   f d $ () <$ evt
-
-withResult :: UI t m => ReqResult tag (Either Text a) -> (Text -> m ()) -> (a -> m ()) -> m ()
-withResult r ef sf = either ef sf $ unzipResult r
 
 -- | Flatten the two level errors into one.
 -- TODO: At one point we want to treat these errors differently.

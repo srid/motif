@@ -7,7 +7,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -16,6 +15,7 @@ module Main where
 import Control.Monad (forM, forM_)
 import Data.Default (Default (def))
 import Data.Monoid ((<>))
+import Data.Text (Text)
 import Data.Tree hiding (drawTree)
 
 import Reflex.Dom (mainWidgetWithCss)
@@ -33,9 +33,14 @@ main = mainWidgetWithCss css app
 
 app :: forall t m. MonadWidget t m => m ()
 app = ouroboros
-  (fmap (Client.unzipResult <$>) . Client.getMotif)
-  drawTree
+  MotifActionGet
+  (container def . either showError drawTree)
   (fmap (Client.unzipResult <$>) . Client.sendAction)
+
+showError :: UI t m => Text -> m (Event t MotifAction)
+showError err = do
+  text $ "Error: " <> err
+  return never
 
 -- 1. Expand collapse, and save 'tree state'
 drawTree :: UI t m => Motif -> m (Event t MotifAction)
@@ -64,8 +69,3 @@ drawTree t = go [unMomentTree $ _motifMomentTree t]
             return $ leftmost [evt, childEvt]
         return $ leftmost evts
     toggleIt st = st { _nodeStateOpen = not $ _nodeStateOpen st }
-
-moment :: (UI t m, IsMoment a) => a -> m ()
-moment v = do
-  divClass "text" $ text $ getText v
-  forM_ (getContext v) $ label def . text . tshow

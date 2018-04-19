@@ -1,41 +1,44 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-module Frontend.Ouroboros where
-
-import Data.Default (Default (def))
-import Data.Monoid ((<>))
-import Data.Text (Text)
+-- The ouroboros is an ancient symbol depicting a serpent or dragon eating its own tail.
+module Frontend.Ouroboros
+  ( ouroboros
+  ) where
 
 import Reflex.Dom.SemanticUI
 
--- TODO: Make this generic enough. Looking to be more Elm like...
+type View model action =
+  forall t m. UI t m => model -> m (Event t action)
+type Update model action =
+  forall t m. MonadWidget t m => Event t action -> m (Event t model)
+
+-- NOTE: Unlike Elm's TEA our update function is intended to actually perform
+-- the update on the server. We might have to revisit this when needing
+-- exclusively client-side updates.
 ouroboros
-  :: forall t m model action. MonadWidget t m
-  => (Event t () -> m (Event t (Either Text model)))
-  -> (model -> m (Event t action))
-  -> (Event t action -> m (Event t (Either Text model)))
+  :: MonadWidget t m
+  => action
+  -> View model action
+  -> Update model action
   -> m ()
-ouroboros initialModel renderModel handleAction = do
-  result <- initialModel =<< getPostBuild
-  widgetHold_ (text "Loading...") $ ffor result $ \r ->
-    container def $ render r (text . ("Error: " <>)) $ \t -> do
-      rec modelDyn <- holdDyn t modelEvent
-          modelEvent <- renderAndUpdate renderModel modelDyn
-      return ()
-  where
-    render r ef sf = either ef sf r
-    renderAndUpdate :: UI t m => (model -> m (Event t action)) -> Dynamic t model -> m (Event t model)
-    renderAndUpdate f d = do
-      e' <- dyn $ ffor d f
-      e <- switch <$> hold never e'
-      filterRight <$> handleAction e
+ouroboros action0 view update = do
+  result <- (update . (action0 <$)) =<< getPostBuild
+  widgetHold_ (text "Loading...") $ ffor result $ \r -> do
+    rec modelDyn <- holdDyn r modelEvent
+        modelEvent <- switchModel view update modelDyn
+    return ()
+
+switchModel
+  :: MonadWidget t m
+  => View model action
+  -> Update model action
+  -> Dynamic t model
+  -> m (Event t model)
+switchModel view update modelDyn = do
+  e' <- dyn $ view <$> modelDyn
+  e <- switch <$> hold never e'
+  update e
