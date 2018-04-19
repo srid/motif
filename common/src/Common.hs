@@ -4,24 +4,32 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 module Common where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.List (nub)
+import Data.Default
 import Data.String (IsString (fromString))
 import Data.Text (Text)
+import Data.Tree
+import Data.UUID (UUID)
 import GHC.Generics
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck.Gen
 
 import qualified Data.Text as T
 import Servant.API
 
-import Common.Tree
+data NodeState = NodeState
+  { _nodeStateDummy :: Bool
+  , _nodeStateOpen :: Bool
+  }
+  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+
+type MotifTree a = Tree (UUID, NodeState, a)
+
+instance Default NodeState where
+  def = NodeState True True
 
 data Motif = Motif
   { _motifHello :: Text
@@ -29,18 +37,12 @@ data Motif = Motif
   }
   deriving (Generic, Show, ToJSON, FromJSON)
 
-newtype MomentTree = MomentTree { unMomentTree :: Tree Moment }
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
+  deriving (Generic, Eq, Show, ToJSON, FromJSON)
 
 data Moment
   = MomentJournal [Context] Content
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
-
-instance Arbitrary Moment where
-  arbitrary = do
-    ctx <- fmap nub $ scale (min 3) $ listOf arbitrary
-    s <- elements ["Buy milk", "File tax", "Pay rent to landlord", "Talk to Diane", "Call accountant", "Summary of vacation"]
-    return $ MomentJournal ctx s
 
 newtype Content = Content { unContent :: Text }
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
@@ -48,21 +50,11 @@ newtype Content = Content { unContent :: Text }
 instance IsString Content where
   fromString = Content . T.pack
 
-instance Arbitrary Content where
-  arbitrary = fmap (Content . T.pack) <$> listOf $ elements ['a' .. 'z']
-
 data Context
   = ContextNone
   | ContextFoo
   | ContextBar
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
-
-instance Arbitrary Context where
-  arbitrary = frequency [
-      (1, return ContextNone)
-    , (2, return ContextFoo)
-    , (4, return ContextBar)
-    ]
 
 class IsMoment a where
   getContext :: a -> [Context]
@@ -74,9 +66,17 @@ instance IsMoment Moment where
   getText = \case
     MomentJournal _ s -> unContent s
 
+instance IsMoment c => IsMoment (a, b, c) where
+  getContext (_, _, x) = getContext x
+  getText (_, _, x) = getText x
+
+data MotifAction
+  = MotifActionGet
+  | MotifActionSetNodeState UUID NodeState
+  deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
+
 type MotifAPI =
-  "motif" :> Get '[JSON] (Either Text Motif)
-  :<|> "motif" :> ReqBody '[JSON] Motif :> Post '[JSON] (Either Text Motif)
+  "motif" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text Motif)
 
 --------------------
 --- Future types!
@@ -101,3 +101,8 @@ data Feeling
   | Perfect
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
+(<<$>>) :: (Functor f2, Functor f1) => (a -> b) -> f1 (f2 a) -> f1 (f2 b)
+(<<$>>) = fmap . fmap
+
+(<<$) :: (Functor f2, Functor f1) => a -> f1 (f2 b) -> f1 (f2 a)
+v <<$ f = fmap (v <$) f
