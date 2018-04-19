@@ -33,9 +33,10 @@ main = mainWidgetWithCss css app
 
 app :: forall t m. MonadWidget t m => m ()
 app = ouroboros
-  MotifActionGet
   (container def . either showError drawTree)
   (fmap (Client.unzipResult <$>) . Client.sendAction)
+  MotifActionGet
+  (text "Loading...")
 
 showError :: UI t m => Text -> m (Event t MotifAction)
 showError err = do

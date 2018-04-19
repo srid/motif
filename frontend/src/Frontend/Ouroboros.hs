@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 -- The ouroboros is an ancient symbol depicting a serpent or dragon eating its own tail.
@@ -21,14 +20,15 @@ type Update model action =
 -- exclusively client-side updates.
 ouroboros
   :: MonadWidget t m
-  => action
-  -> View model action
+  => View model action
   -> Update model action
+  -> action
   -> m ()
-ouroboros action0 view update = do
-  result <- (update . (action0 <$)) =<< getPostBuild
-  widgetHold_ (text "Loading...") $ ffor result $ \r -> do
-    rec modelDyn <- holdDyn r modelEvent
+  -> m ()
+ouroboros view update action0 widget0 = do
+  result <- update . (action0 <$) =<< getPostBuild
+  widgetHold_ widget0 $ ffor result $ \model0 -> do
+    rec modelDyn <- holdDyn model0 modelEvent
         modelEvent <- switchModel view update modelDyn
     return ()
 
