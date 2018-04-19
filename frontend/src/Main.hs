@@ -66,7 +66,11 @@ drawTree t = go [unMomentTree $ _motifMomentTree t]
               text $ getText v
               MotifActionSetNodeState id' (toggleIt st) <<$ button def (text "Collapse")
             listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
-            childEvt <- if _nodeStateOpen st then go xs' else return never
+            childEvt <- if _nodeStateOpen st
+              then go xs'
+              else do
+                text "<collapsed>"
+                return never
             return $ leftmost [evt, childEvt]
         return $ leftmost evts
     toggleIt st = st { _nodeStateOpen = not $ _nodeStateOpen st }

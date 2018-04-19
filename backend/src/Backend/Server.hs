@@ -14,11 +14,12 @@ module Backend.Server (runServer, Env(..)) where
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
 import Data.Default (def)
+import Data.Maybe (fromJust)
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Tree
 import Data.UUID (UUID)
-import Data.UUID.V4 (nextRandom)
+import qualified Data.UUID as UUID
 
 import Servant
 import Servant.Server (hoistServer)
@@ -57,20 +58,20 @@ setState id' state =
   -- TODO: replace with map
   \case
     Node v@(id'', _oldState, x) c ->
-      if id'' == id' -- XXX: This doesn't obviously work as we are regenerating random sample IDs
+      if id'' == id' -- FIXME: doesn't work at sub level
         then Node (id', state, x) c
-        else Node v c
+        else Node v $ setState id' state <$> c
 
 -- TODO: Use real data; actual items below:
 -- 1. Read this http://www.aosabook.org/en/posa/warp.html
 sample :: IO Motif
 sample = do
   let st = def :: NodeState
-  u1 <- nextRandom
+  let u1 = fromJust $ UUID.fromString "d6463901-6f36-43f5-96d8-e07b695d214d"
+  let u2 = fromJust $ UUID.fromString "bf86f808-c30c-45ef-bd93-c72a3cf404e5"
+  let u3 = fromJust $ UUID.fromString "29e58221-48ca-41d0-82a4-6bee420e4df8"
   let m1 = (u1, st,) $ MomentJournal [ContextFoo] "Hello world"
-  u2 <- nextRandom
   let m2 = (u2, st,) $ MomentJournal [ContextFoo] "Buy milk"
-  u3 <- nextRandom
   let m3 = (u3, st,) $ MomentJournal [ContextBar] "Catch a fish"
   return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m3 [], Node m3 []], Node m3 []]
 
