@@ -21,6 +21,8 @@ executable frontend
   build-depends:       
     base >=4.9 && <4.11,
     common,
+    containers,
+    data-default,
     reflex-dom,
     semantic-reflex,
     servant-reflex,

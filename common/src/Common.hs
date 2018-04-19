@@ -52,8 +52,8 @@ instance IsString Content where
 
 data Context
   = ContextNone
-  | ContextFoo
-  | ContextBar
+  | ContextChore
+  | ContextReading
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
 class IsMoment a where

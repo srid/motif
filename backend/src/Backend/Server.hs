@@ -7,7 +7,6 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 module Backend.Server (runServer, Env(..)) where
 
@@ -30,6 +29,8 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 import Common
 
+import Backend.Database
+
 data Env = Env {}
   deriving (Eq, Show, Ord)
 
@@ -47,33 +48,33 @@ motifServer = sendAction
     sendAction :: MotifAction -> AppM (Either Text Motif)
     sendAction = \case
       MotifActionGet ->
-        liftIO $ Right <$> sample
+        return $ Right realData
       MotifActionSetNodeState id' state -> do
-        s <- liftIO sample
-        let s' = setState id' state $ unMomentTree $ _motifMomentTree s
-        return $ Right $ Motif "changed" $ MomentTree s'
+        let d = setState id' state $ unMomentTree $ _motifMomentTree realData
+        return $ Right $ Motif "changed" $ MomentTree d
 
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =
   -- TODO: replace with map
   \case
     Node v@(id'', _oldState, x) c ->
-      if id'' == id' -- FIXME: doesn't work at sub level
+      if id'' == id'
         then Node (id', state, x) c
         else Node v $ setState id' state <$> c
 
--- TODO: Use real data; actual items below:
--- 1. Read this http://www.aosabook.org/en/posa/warp.html
-sample :: IO Motif
-sample = do
-  let st = def :: NodeState
-  let u1 = fromJust $ UUID.fromString "d6463901-6f36-43f5-96d8-e07b695d214d"
-  let u2 = fromJust $ UUID.fromString "bf86f808-c30c-45ef-bd93-c72a3cf404e5"
-  let u3 = fromJust $ UUID.fromString "29e58221-48ca-41d0-82a4-6bee420e4df8"
-  let m1 = (u1, st,) $ MomentJournal [ContextFoo] "Hello world"
-  let m2 = (u2, st,) $ MomentJournal [ContextFoo] "Buy milk"
-  let m3 = (u3, st,) $ MomentJournal [ContextBar] "Catch a fish"
-  return $ Motif "Hello" . MomentTree $ Node m1 [Node m2 [Node m3 [], Node m3 []], Node m3 []]
+-- TODO: Start persisting this in vcache.
+realData :: Motif
+realData = Motif "Hello"  $ MomentTree t
+  where
+    t = Node (u1, def, MomentJournal [] "Inbox")
+      [ Node (u2, def, MomentJournal [ContextChore] "Find a new maid") []
+      , Node (u3, def, MomentJournal [ContextReading] "Read warp chapter from aosabook") []
+      , Node (u4, def, MomentJournal [ContextChore] "Pay tax by end of month") []
+      ]
+    u1 = fromJust $ UUID.fromString "a6463901-6f36-43f5-96d8-e07b695d214d"
+    u2 = fromJust $ UUID.fromString "b6463901-6f36-43f5-96d8-e07b695d214d"
+    u3 = fromJust $ UUID.fromString "c6463901-6f36-43f5-96d8-e07b695d214d"
+    u4 = fromJust $ UUID.fromString "d6463901-6f36-43f5-96d8-e07b695d214d"
 
 runServer
   :: (Functor m, MonadReader Env m, MonadIO m)
