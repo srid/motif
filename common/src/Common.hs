@@ -54,6 +54,7 @@ data Context
   = ContextNone
   | ContextChore
   | ContextReading
+  | ContextIdea
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
 class IsMoment a where
