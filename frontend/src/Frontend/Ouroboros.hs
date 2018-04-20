@@ -1,7 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
 -- The ouroboros is an ancient symbol depicting a serpent or dragon eating its own tail.
 module Frontend.Ouroboros
@@ -10,18 +7,18 @@ module Frontend.Ouroboros
 
 import Reflex.Dom.SemanticUI
 
-type View model action =
-  forall t m. UI t m => model -> m (Event t action)
-type Update model action =
-  forall t m. MonadWidget t m => Event t action -> m (Event t model)
+type View t m model action =
+  model -> m (Event t action)
+type Update t m model action =
+  Event t action -> m (Event t model)
 
 -- NOTE: Unlike Elm's TEA our update function is intended to actually perform
 -- the update on the server. We might have to revisit this when needing
 -- exclusively client-side updates.
 ouroboros
   :: MonadWidget t m
-  => View model action
-  -> Update model action
+  => View t m model action
+  -> Update t m model action
   -> action
   -> m ()
   -> m ()
@@ -34,8 +31,8 @@ ouroboros view update action0 widget0 = do
 
 switchModel
   :: MonadWidget t m
-  => View model action
-  -> Update model action
+  => View t m model action
+  -> Update t m model action
   -> Dynamic t model
   -> m (Event t model)
 switchModel view update modelDyn = do

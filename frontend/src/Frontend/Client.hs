@@ -7,6 +7,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 module Frontend.Client
@@ -29,7 +30,7 @@ serverUrl = BaseFullUrl Http "localhost" 3001 "/"
 type SendAction t m = Dynamic t (Either Text MotifAction) -> Event t () -> m (Event t (ReqResult () (Either Text Motif)))
 
 motifClient :: forall t m. MonadWidget t m => SendAction t m
-motifClient = client (Proxy :: Proxy MotifAPI) (Proxy :: Proxy m) (Proxy :: Proxy ()) (constDyn serverUrl)
+motifClient = client (Proxy @MotifAPI) (Proxy @m) (Proxy @()) (constDyn serverUrl)
 
 sendAction' :: MonadWidget t m => SendAction t m
 sendAction' = motifClient
