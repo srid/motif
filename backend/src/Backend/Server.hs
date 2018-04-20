@@ -29,11 +29,10 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 import Common
 
-import Backend.Database (Database)
 import qualified Backend.Database as Database
 
 newtype Env = Env
-  { acid :: Acid.AcidState Database
+  { acid :: Acid.AcidState Motif
   }
 
 type AppM = ReaderT Env Handler

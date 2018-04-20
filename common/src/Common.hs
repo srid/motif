@@ -14,6 +14,7 @@ import Data.Default
 import Data.String (IsString (fromString))
 import Data.Text (Text)
 import Data.Tree
+import Data.Typeable
 import Data.UUID (UUID)
 import GHC.Generics
 
@@ -35,7 +36,7 @@ data Motif = Motif
   { _motifHello :: Text
   , _motifMomentTree :: MomentTree
   }
-  deriving (Generic, Show, ToJSON, FromJSON)
+  deriving (Generic, Show, Typeable, ToJSON, FromJSON)
 
 newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
   deriving (Generic, Eq, Show, ToJSON, FromJSON)
