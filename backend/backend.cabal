@@ -18,6 +18,7 @@ executable backend
   main-is:             Main.hs
   ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
   build-depends:       
+    acid-state,
     aeson,
     base >=4.9 && <4.11,
     bytestring,

@@ -21,7 +21,8 @@ import Data.Text (Text)
 import Reflex.Dom.SemanticUI
 import Servant.Reflex
 
-import Common
+import Common (MotifAPI)
+import Common.Types (Motif, MotifAction)
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl

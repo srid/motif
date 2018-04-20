@@ -21,7 +21,8 @@ import Data.Tree hiding (drawTree)
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
-import Common
+import Common ((<<$))
+import Common.Types
 
 import qualified Frontend.Client as Client
 import Frontend.Ouroboros
@@ -44,16 +45,21 @@ showError err = do
   return never
 
 -- 1. Expand collapse, and save 'tree state'
-drawTree :: UI t m => Motif -> m (Event t MotifAction)
-drawTree t = go [unMomentTree $ _motifMomentTree t]
+drawTree :: MonadWidget t m => Motif -> m (Event t MotifAction)
+drawTree t = segment def $ do
+  txt <- _textInput_value <$> textInput def
+  addToInbox <- fmap ((MotifActionAddToInbox <$>) . tagPromptlyDyn txt) $
+    button (def & buttonConfig_type .~ SubmitButton) $ text "Add"
+  treeAction <- segment def $ go [unMomentTree $ _motifMomentTree t]
+  return $ leftmost [addToInbox, treeAction]
   where
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
     go = \case
       [] -> do
         blank
         return never
-      xs -> do
-        evts <- list def $ forM xs $ \case
+      xs ->
+        fmap leftmost $ list def $ forM xs $ \case
           Node v [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
             listHeader $ do
               text $ getText v
@@ -72,5 +78,4 @@ drawTree t = go [unMomentTree $ _motifMomentTree t]
                 text "<collapsed>"
                 return never
             return $ leftmost [evt, childEvt]
-        return $ leftmost evts
     toggleIt st = st { _nodeStateOpen = not $ _nodeStateOpen st }
