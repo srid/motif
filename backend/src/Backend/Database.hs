@@ -11,10 +11,12 @@ import Control.Monad.State
 import Data.Maybe (fromJust)
 import Data.Tree (Tree (Node))
 
+import Control.Exception (bracket)
 import Data.Acid
 import Data.Default (def)
 import Data.SafeCopy
 import Data.Typeable
+
 import Data.UUID (UUID)
 import qualified Data.UUID as UUID
 
@@ -48,6 +50,9 @@ openDb = openLocalState ini
     ini = Database $ Motif "Hello" $ MomentTree initialNode
     initialNode = Node (uuid, def, MomentInbox "First item") []
     uuid = fromJust $ UUID.fromString "a6463901-6f36-43f5-96d8-e07b695d214d"
+
+closeDb :: AcidState Database -> IO ()
+closeDb = closeAcidState
 
 get :: AcidState Database -> IO Motif
 get db = query db QueryState

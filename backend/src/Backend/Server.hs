@@ -52,7 +52,7 @@ motifServer = sendAction
       MotifActionGet -> do
         db <- reader acid
         liftIO $ Right <$> Database.get db
-      MotifAddToInbox s -> do
+      MotifActionAddToInbox s -> do
         db <- reader acid
         d <- liftIO $ Database.get db
         uuid <- liftIO UUID.nextRandom
