@@ -16,13 +16,15 @@ cabal-version:       >=1.10
 
 library
   ghc-options:         -Wall -O2
-  exposed-modules:     Common
+  exposed-modules:     Common, Common.Types
   build-depends:       
     aeson,
     base >=4.9 && <4.11,
+    bytestring,
     containers,
     data-default,
     dependent-map,
+    http-media,
     servant,
     text,
     time,

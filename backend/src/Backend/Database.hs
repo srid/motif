@@ -15,7 +15,8 @@ import Data.Default (def)
 
 import qualified Data.UUID as UUID
 
-import Common
+-- TODO: Import only Motif
+import Common.Types (Moment (MomentInbox), MomentTree (MomentTree), Motif (Motif))
 
 import Backend.Database.Internal (QueryState (QueryState), WriteState (WriteState))
 

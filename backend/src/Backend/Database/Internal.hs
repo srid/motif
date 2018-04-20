@@ -19,7 +19,7 @@ import Data.SafeCopy
 
 import Data.UUID (UUID)
 
-import Common
+import Common.Types
 
 -- These are explicitly orphan instances as the frontend doesn't need to know
 -- about serialization or have `safe-copy` as a dependency.

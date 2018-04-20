@@ -21,7 +21,8 @@ import Data.Tree hiding (drawTree)
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
-import Common
+import Common ((<<$))
+import Common.Types
 
 import qualified Frontend.Client as Client
 import Frontend.Ouroboros

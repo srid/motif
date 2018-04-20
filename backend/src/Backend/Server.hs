@@ -7,6 +7,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 module Backend.Server (runServer, Env(..)) where
 
@@ -27,7 +28,7 @@ import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (cors, corsRequestHeaders, simpleCorsResourcePolicy)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
-import Common
+import Common.Types
 
 import qualified Backend.Database as Database
 
@@ -38,10 +39,8 @@ newtype Env = Env
 type AppM = ReaderT Env Handler
 
 app :: Env -> Application
-app e = serve motifAPI $ hoistServer motifAPI (`runReaderT` e) motifServer
-
-motifAPI :: Proxy MotifAPI
-motifAPI = Proxy
+app e = serve (Proxy @MotifAPI) $
+  hoistServer (Proxy @MotifAPI) (`runReaderT` e) motifServer
 
 motifServer :: ServerT MotifAPI AppM
 motifServer = sendAction
