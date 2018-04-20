@@ -46,7 +46,7 @@ openDb :: IO (AcidState Database)
 openDb = openLocalState ini
   where
     ini = Database $ Motif "Hello" $ MomentTree initialNode
-    initialNode = Node (uuid, def, MomentJournal [] "Hello World") []
+    initialNode = Node (uuid, def, MomentInbox "First item") []
     uuid = fromJust $ UUID.fromString "a6463901-6f36-43f5-96d8-e07b695d214d"
 
 get :: AcidState Database -> IO Motif

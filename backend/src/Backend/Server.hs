@@ -16,7 +16,9 @@ import Data.Text (Text)
 import Data.Tree
 
 import qualified Data.Acid as Acid
+import Data.Default (def)
 import Data.UUID (UUID)
+import qualified Data.UUID.V4 as UUID
 
 import Servant
 import Servant.Server (hoistServer)
@@ -50,12 +52,23 @@ motifServer = sendAction
       MotifActionGet -> do
         db <- reader acid
         liftIO $ Right <$> Database.get db
+      MotifAddToInbox s -> do
+        db <- reader acid
+        d <- liftIO $ Database.get db
+        uuid <- liftIO UUID.nextRandom
+        let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
+        let motif' = Motif "changed" $ MomentTree $ addNode node $ unMomentTree $ _motifMomentTree d
+        liftIO $ Database.put db motif'
+        return $ Right motif'
       MotifActionSetNodeState id' state -> do
         db <- reader acid
         d <- liftIO $ Database.get db
         let motif' = Motif "changed" $ MomentTree $ setState id' state $ unMomentTree $ _motifMomentTree d
         liftIO $ Database.put db motif'
         return $ Right motif'
+
+addNode :: MotifTree Moment -> MotifTree Moment -> MotifTree Moment
+addNode n t = n { subForest = [t] }
 
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =

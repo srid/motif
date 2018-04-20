@@ -41,7 +41,8 @@ newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
   deriving (Generic, Eq, Show, ToJSON, FromJSON)
 
 data Moment
-  = MomentJournal [Context] Content
+  = MomentInbox Content  -- ^ Simplest content type; just text.
+  | MomentJournal [Context] Content
   deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
 
 newtype Content = Content { unContent :: Text }
@@ -63,8 +64,10 @@ class IsMoment a where
 
 instance IsMoment Moment where
   getContext = \case
+    MomentInbox _ -> []
     MomentJournal v _ -> v
   getText = \case
+    MomentInbox s -> unContent s
     MomentJournal _ s -> unContent s
 
 instance IsMoment c => IsMoment (a, b, c) where
@@ -73,6 +76,7 @@ instance IsMoment c => IsMoment (a, b, c) where
 
 data MotifAction
   = MotifActionGet
+  | MotifAddToInbox Text
   | MotifActionSetNodeState UUID NodeState
   deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
 

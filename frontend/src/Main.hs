@@ -44,8 +44,13 @@ showError err = do
   return never
 
 -- 1. Expand collapse, and save 'tree state'
-drawTree :: UI t m => Motif -> m (Event t MotifAction)
-drawTree t = go [unMomentTree $ _motifMomentTree t]
+drawTree :: MonadWidget t m => Motif -> m (Event t MotifAction)
+drawTree t = segment def $ do
+  txt <- _textInput_value <$> textInput def
+  addToInbox <- fmap ((MotifAddToInbox <$>) . tagPromptlyDyn txt) $
+    button (def & buttonConfig_type .~ SubmitButton) $ text "Add"
+  treeAction <- segment def $ go [unMomentTree $ _motifMomentTree t]
+  return $ leftmost [addToInbox, treeAction]
   where
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
     go = \case
