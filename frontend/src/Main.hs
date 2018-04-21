@@ -60,14 +60,14 @@ drawTree t = segment def $ do
         return never
       xs ->
         fmap leftmost $ list def $ forM xs $ \case
-          Node v [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+          Node v@(id', _, _) [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
             listHeader $ do
               text $ getText v
               forM_ (getContext v) $ label def . text . tshow
             listDescription $ text "Leaf content"
-            return never
+            MotifActionDelete id' <<$ do
+              button (def & buttonConfig_type .~ SubmitButton) $ text "DEL"
           Node v@(id', st, _) xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
-            -- TODO: Show children only if `_state[open]`.
             evt <- listHeader $ do
               text $ getText v
               MotifActionSetNodeState id' (toggleIt st) <<$ button def (text "Collapse")

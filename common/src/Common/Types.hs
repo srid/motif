@@ -77,6 +77,7 @@ instance IsMoment c => IsMoment (a, b, c) where
 data MotifAction
   = MotifActionGet
   | MotifActionAddToInbox Text
+  | MotifActionDelete UUID
   | MotifActionSetNodeState UUID NodeState
   deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
 

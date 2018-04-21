@@ -13,6 +13,7 @@ module Backend.Server (runServer, Env(..)) where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.Tree
 
@@ -58,6 +59,12 @@ motifServer = sendAction
         let motif' = Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
         return $ Right motif'
+      MotifActionDelete id' -> do
+        db <- reader acid
+        d <- liftIO $ Database.get db
+        let motif' = Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree d
+        liftIO $ Database.put db motif'
+        return $ Right motif'
       MotifActionSetNodeState id' state -> do
         db <- reader acid
         d <- liftIO $ Database.get db
@@ -65,13 +72,24 @@ motifServer = sendAction
         liftIO $ Database.put db motif'
         return $ Right motif'
 
+-- TODO: Replace these set of functions using Tree functor map
+
 -- | Add a node to the top-level level1 node.
 addNode :: Tree a -> Tree a -> Tree a
 addNode n t@(Node v xs) = Node v $ n : xs
 
+deleteNode :: UUID -> Tree (UUID, a, b) -> Tree (UUID, a, b)
+deleteNode id' (Node v xs) = Node v $ deleteNode' id' xs
+
+deleteNode' :: UUID -> Forest (UUID, a, b) -> Forest (UUID, a, b)
+deleteNode' id' ts = catMaybes $ fmap go ts
+  where
+    go (Node v@(id'', _, _) xs) = if id' == id''
+      then Nothing
+      else Just $ Node v $ catMaybes $ fmap go xs
+
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =
-  -- TODO: replace with map
   \case
     Node v@(id'', _oldState, x) c ->
       if id'' == id'
