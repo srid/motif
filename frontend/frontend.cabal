@@ -25,7 +25,7 @@ executable frontend
     data-default,
     reflex-dom,
     semantic-reflex,
-    servant-reflex,
+    reflex-servant,
     text,
     time
   hs-source-dirs:      src
