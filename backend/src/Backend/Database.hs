@@ -23,7 +23,7 @@ import Backend.Database.Internal (QueryState (QueryState), WriteState (WriteStat
 openDb :: IO (AcidState Motif)
 openDb = openLocalState ini
   where
-    ini = Motif "Hello" $ MomentTree initialNode
+    ini = Motif $ MomentTree initialNode
     initialNode = Node (uuid, def, MomentInbox "First item") []
     uuid = fromJust $ UUID.fromString "a6463901-6f36-43f5-96d8-e07b695d214d"
 

@@ -55,13 +55,13 @@ motifServer = sendAction
         d <- liftIO $ Database.get db
         uuid <- liftIO UUID.nextRandom
         let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
-        let motif' = Motif "changed" $ MomentTree $ addNode node $ unMomentTree $ _motifMomentTree d
+        let motif' = Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
         return $ Right motif'
       MotifActionSetNodeState id' state -> do
         db <- reader acid
         d <- liftIO $ Database.get db
-        let motif' = Motif "changed" $ MomentTree $ setState id' state $ unMomentTree $ _motifMomentTree d
+        let motif' = Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
         return $ Right motif'
 

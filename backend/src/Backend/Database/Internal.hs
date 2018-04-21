@@ -23,7 +23,7 @@ import Common.Types
 
 -- These are explicitly orphan instances as the frontend doesn't need to know
 -- about serialization or have `safe-copy` as a dependency.
-$(deriveSafeCopy 0 'base ''Motif)
+$(deriveSafeCopy 1 'base ''Motif)
 $(deriveSafeCopy 0 'base ''MomentTree)
 $(deriveSafeCopy 0 'base ''UUID)
 $(deriveSafeCopy 0 'base ''NodeState)

@@ -32,9 +32,8 @@ type MotifTree a = Tree (UUID, NodeState, a)
 instance Default NodeState where
   def = NodeState True True
 
-data Motif = Motif
-  { _motifHello :: Text
-  , _motifMomentTree :: MomentTree
+newtype Motif = Motif
+  { _motifTree :: MomentTree
   }
   deriving (Generic, Show, Typeable, ToJSON, FromJSON)
 
