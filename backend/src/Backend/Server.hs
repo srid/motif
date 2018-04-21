@@ -65,8 +65,9 @@ motifServer = sendAction
         liftIO $ Database.put db motif'
         return $ Right motif'
 
-addNode :: MotifTree Moment -> MotifTree Moment -> MotifTree Moment
-addNode n t = n { subForest = [t] }
+-- | Add a node to the top-level level1 node.
+addNode :: Tree a -> Tree a -> Tree a
+addNode n t@(Node v xs) = Node v $ n : xs
 
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =
