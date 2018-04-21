@@ -23,9 +23,12 @@ executable frontend
     common,
     containers,
     data-default,
+    http-client,
     reflex-dom,
     semantic-reflex,
     reflex-servant,
+    servant-client,
+    servant-client-core,
     text,
     time
   hs-source-dirs:      src

@@ -15,11 +15,16 @@ module Main where
 import Control.Monad (forM, forM_)
 import Data.Default (Default (def))
 import Data.Monoid ((<>))
+import Data.Profunctor (dimap)
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
+
+-- XXX
+import Network.HTTP.Client (newManager, defaultManagerSettings)
+import Servant.Client (mkClientEnv)
 
 import Common ((<<$))
 import Common.Types
@@ -28,14 +33,17 @@ import qualified Frontend.Client as Client
 import Frontend.Ouroboros
 
 main :: IO ()
-main = mainWidgetWithCss css app
+main = do
+  mgr <- newManager defaultManagerSettings
+  let clientEnv = mkClientEnv mgr Client.serverUrl
+  mainWidgetWithCss css app
   where
     css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.0/semantic.min.css);"
 
 app :: forall t m. MonadWidget t m => m ()
 app = ouroboros
-  (container def . either showError drawTree)
-  (fmap (Client.unzipResult <$>) . Client.sendAction)
+  (container def . either (showError . tshow) (either showError drawTree))
+  Client.sendAction
   MotifActionGet
   (text "Loading...")
 
@@ -44,7 +52,6 @@ showError err = do
   text $ "Error: " <> err
   return never
 
--- 1. Expand collapse, and save 'tree state'
 drawTree :: MonadWidget t m => Motif -> m (Event t MotifAction)
 drawTree t = segment def $ do
   txt <- _textInput_value <$> textInput def

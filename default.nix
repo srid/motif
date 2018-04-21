@@ -25,27 +25,13 @@
   };
 
   overrides = self: super: let 
-    # servant >= 0.12
-    # Not using v0.13 as they require latest http-types which jsaddle doesn't work with.
-# Setup: Encountered missing dependencies:
-# aeson >=1.2.3.0 && <1.4,
-# attoparsec >=0.13.2.0 && <0.14,
-# base-compat >=0.9.3 && <0.11,
-# http-media >=0.7.0 && <0.8,
-# http-types ==0.12.*,
-# mmorph >=1.1.0 && <1.2,
-# text >=1.2.3.0 && <1.3
-# and 
-# Configuring jsaddle-0.9.4.0...
-# Setup: Encountered missing dependencies:
-# http-types >=0.8.6 && <0.12
+    # reflex-servant requires servant 0.13 which requires latest http-types,
+    # which necessitated forking jsaddle.
     servant= pkgs.fetchFromGitHub {
       owner = "haskell-servant";
       repo = "servant";
       rev = "0f0c8f7f900670a64336d7ec1cb98c45cea90c52";
       sha256 = "19pivi2a943cjzmvi8ipbj3i42vs382g2fq1y08xa64j4w86sxni";
-      #rev = "7e9910b27ee42c635bb71f87bbdaa6056ab22c23";
-      #sha256 = "0j2j6x8wdc3jzpixaq4wrpb4873bj4jvqmfbhcybdqx8cl8v36yp";
     }; 
     http-types = pkgs.fetchFromGitHub {
       owner = "aristidb";
@@ -95,22 +81,24 @@
       rev = "a02c2dafafa425bd5f36c8629e98b98daf1cfa1e";
       sha256 = "0rh9mb023f0s56ylzxz9c3c1y09lpl6m69ap5bnpdi0dz7fm6s85";
     };
-
-    servant-reflex = pkgs.fetchFromGitHub {
-      owner = "imalsogreg";
-      repo = "servant-reflex";
-      rev = "115da63dbfac37c1fd4f5e652466778ac461e148";
-      sha256 = "1r829j3qy7vwcng7xpwfp2w5605i43w5x8g5skgd1iz7a5mfmq5i";
-    };
+  http-client = pkgs.fetchFromGitHub {
+    owner = "snoyberg";
+    repo = "http-client";
+    rev = "75e91186cb94e2b68c9ec5589f030b439d899dee";
+      sha256 = "1ksasq2pxpmhlgdkwidic4vqk8rnj3zpm5g5z7fm7fjqxwz0z6k3";
+  };
 
     reflex-servant = pkgs.fetchFromGitHub {
       owner = "Compositional";
-      #owner = "srid";
       repo = "reflex-servant";
-      #rev = "bec3a37ba037f35f51e39d4fdfc2855139f7c917";
-      #sha256 = "1fc3i6kygzlbrvlssnhkald2jfj3nj6024mbdzv6gmv9y8rbxbal";
       rev = "a58a50d8ea418719f6366a296906838503311d76";
       sha256 = "0q23zcmm6yffm2z5mqlkg22d8av1a2wfm9w5yyhj4pbxl0gpkvfk";
+    };
+    servant-client-jsaddle = pkgs.fetchFromGitHub {
+      owner = "Compositional";
+      repo = "servant-client-jsaddle";
+      rev = "c83e5ddfd59047ec22e41bc4314764dc64218267";
+      sha256 = "00ar67a833pd90cw8mn3jmkyfvgphhyrq3b98n13sgsn7abj45sf";
     };
 
     semantic-reflex = pkgs.fetchFromGitHub {
@@ -127,6 +115,7 @@
       # https://github.com/reflex-frp/reflex-platform/pull/281#discussion_r181538045
       reflex-dom = pkgs.haskell.lib.addBuildDepend (pkgs.haskell.lib.enableCabalFlag super.reflex-dom "use-warp") self.jsaddle-warp;
 
+      # Servant and reflex-servant
       servant = skipTest (self.callCabal2nix "servant" "${servant}/servant" {});
       servant-server = skipTest (self.callCabal2nix "servant-server" "${servant}/servant-server" {});
       servant-client = skipTest (self.callCabal2nix "servant-client" "${servant}/servant-client" {});
@@ -141,8 +130,9 @@
       http-media = skipTest (self.callCabal2nix "http-media" "${http-media}" {});
       text = self.callCabal2nix "text" "${text}" {};
       mmorph = self.callCabal2nix "mmorph" "${mmorph}" {};
-      # servant-reflex = self.callCabal2nix "servant-reflex" "${servant-reflex}" {};
       reflex-servant = skipTest (self.callCabal2nix "reflex-servant" "${reflex-servant}" {});
+      http-client = skipTest (self.callCabal2nix "http-client" "${http-client}/http-client" {});
+      servant-client-jsaddle = skipTest (self.callCabal2nix "servant-client-jsaddle" "${servant-client-jsaddle}" {});
 
       semantic-reflex = self.callCabal2nix "semantic-reflex" "${semantic-reflex}/semantic-reflex" {};
     };
