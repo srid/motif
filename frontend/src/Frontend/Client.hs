@@ -14,8 +14,7 @@ import Reflex.Servant
 import Servant.Client.Core
 import Servant.Client.JSaddle (fixUpXhr, mkClientEnv, runClientM)
 
-import Common (MotifAPI)
-import Common.Types (Motif, MotifAction)
+import Common.Types (Motif, MotifAPI, MotifAction)
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
 serverUrl :: BaseUrl
