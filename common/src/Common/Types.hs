@@ -1,17 +1,16 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 module Common.Types where
 
-import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8 as BC
 import Data.Default
 import Data.Monoid ((<>))
@@ -31,7 +30,7 @@ data NodeState = NodeState
   { _nodeStateDummy :: Bool
   , _nodeStateOpen :: Bool
   }
-  deriving (Generic, Eq, Ord, Show, Read, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show, Read)
 
 type MotifTree a = Tree (UUID, NodeState, a)
 
@@ -41,19 +40,33 @@ instance Default NodeState where
 newtype Motif = Motif
   { _motifTree :: MomentTree
   }
-  deriving (Generic, Show, Read, Typeable, ToJSON, FromJSON)
+  deriving (Generic, Typeable)
 
-newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
-  deriving (Generic, Eq, Show, Read, ToJSON, FromJSON)
+deriving instance Show Motif
+deriving instance Read Motif
 
--- FIXME: GADT is more appropriate here.
-data Moment
-  = MomentInbox Content  -- ^ Simplest content type; just text.
-  | MomentJournal [Context] Content
-  deriving (Generic, Eq, Ord, Show, Read, ToJSON, FromJSON)
+data MomentTree
+  = forall a. (Read a, Show a, IsMoment a)
+  => MomentTree { unMomentTree :: Tree (UUID, NodeState, a) }
+
+deriving instance Show MomentTree
+deriving instance Read MomentTree
+
+data Moment a where
+  MkMoment :: a -> Moment a
+  deriving (Generic, Eq, Ord)
+
+deriving instance Show a => Show (Moment a)
+deriving instance Read a => Read (Moment a)
+
+newtype Inbox = Inbox Content
+  deriving (Generic, Eq, Ord, Show, Read)
+
+data Journal = Journal [Context] Content
+  deriving (Generic, Eq, Ord, Show, Read)
 
 newtype Content = Content { unContent :: Text }
-  deriving (Generic, Eq, Ord, Show, Read, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show, Read)
 
 instance IsString Content where
   fromString = Content . T.pack
@@ -63,19 +76,23 @@ data Context
   | ContextChore
   | ContextReading
   | ContextIdea
-  deriving (Generic, Eq, Ord, Show, Read, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show, Read)
 
 class IsMoment a where
   getContext :: a -> [Context]
   getText :: a -> Text
 
-instance IsMoment Moment where
-  getContext = \case
-    MomentInbox _ -> []
-    MomentJournal v _ -> v
-  getText = \case
-    MomentInbox s -> unContent s
-    MomentJournal _ s -> unContent s
+instance IsMoment Inbox where
+  getContext = const mempty
+  getText (Inbox c) = unContent c
+
+instance IsMoment Journal where
+  getContext (Journal ctx _) = ctx
+  getText  (Journal _ c) = unContent c
+
+instance IsMoment a => IsMoment (Moment a) where
+  getContext (MkMoment x) = getContext x
+  getText (MkMoment x) = getText x
 
 instance IsMoment c => IsMoment (a, b, c) where
   getContext (_, _, x) = getContext x
@@ -86,7 +103,7 @@ data MotifAction
   | MotifActionAddToInbox Text
   | MotifActionDelete UUID
   | MotifActionSetNodeState UUID NodeState
-  deriving (Generic, Eq, Show, Read, Ord, ToJSON, FromJSON)
+  deriving (Generic, Eq, Show, Read, Ord)
 
 type MotifAPI = "motif"
   :> ReqBody '[HaskellType] MotifAction
@@ -110,7 +127,7 @@ instance Read a => MimeUnrender HaskellType a where
 data MomentOtherExamples
   = MomentFoodLog [Context] [(Food, Int)]
   | MomentActualism [Context] Feeling Content
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show)
 data Food
   = Coffee
   | Croissant
@@ -118,7 +135,7 @@ data Food
   | LambBurgerGrams
   | Egg
   | Butter
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show)
 data Feeling
   = Terrible
   | Bad
@@ -126,4 +143,4 @@ data Feeling
   | Good
   | Great
   | Perfect
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
+  deriving (Generic, Eq, Ord, Show)
