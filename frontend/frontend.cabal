@@ -24,7 +24,6 @@ executable frontend
     containers,
     data-default,
     lens,
-    http-client,
     reflex-dom,
     semantic-reflex,
     reflex-servant,

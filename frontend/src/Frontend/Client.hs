@@ -29,6 +29,8 @@ motifClient = reflexClient (basicConfig myRunner) (Proxy @MotifAPI)
 myRunner :: MonadJSM m => ServantClientRunner () m
 myRunner cfg (GenericClientM m) = servantClientRunner cfg m
 
+-- TODO: Make it work with ghcjs
+-- cf. https://github.com/Compositional/reflex-servant/issues/7
 servantClientRunner
   :: MonadJSM m
   => ()
