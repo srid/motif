@@ -28,6 +28,7 @@ import Servant.Server (hoistServer)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (cors, corsRequestHeaders, simpleCorsResourcePolicy)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import Network.Wai.Middleware.Static (static)
 
 import Common.Types
 
@@ -109,7 +110,7 @@ runServer
 runServer = do
   e <- ask
   liftIO $ putStrLn "Running server at http://localhost:3001/"
-  liftIO $ run 3001 $ corsWithContentType $ logStdoutDev $ app e
+  liftIO $ run 3001 $ corsWithContentType $ logStdoutDev $ static $ app e
   where
     -- | Allow Content-Type header with values other then allowed by simpleCors.
     corsWithContentType = cors (const $ Just policy)
