@@ -28,8 +28,8 @@ executable frontend
     reflex-dom,
     semantic-reflex,
     reflex-servant,
-    servant-client,
     servant-client-core,
+    servant-client-jsaddle,
     text,
     time,
     zippers

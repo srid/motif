@@ -81,12 +81,12 @@
       rev = "a02c2dafafa425bd5f36c8629e98b98daf1cfa1e";
       sha256 = "0rh9mb023f0s56ylzxz9c3c1y09lpl6m69ap5bnpdi0dz7fm6s85";
     };
-  http-client = pkgs.fetchFromGitHub {
-    owner = "snoyberg";
-    repo = "http-client";
-    rev = "75e91186cb94e2b68c9ec5589f030b439d899dee";
-      sha256 = "1ksasq2pxpmhlgdkwidic4vqk8rnj3zpm5g5z7fm7fjqxwz0z6k3";
-  };
+    http-client = pkgs.fetchFromGitHub {
+      owner = "snoyberg";
+      repo = "http-client";
+      rev = "75e91186cb94e2b68c9ec5589f030b439d899dee";
+        sha256 = "1ksasq2pxpmhlgdkwidic4vqk8rnj3zpm5g5z7fm7fjqxwz0z6k3";
+    };
 
     reflex-servant = pkgs.fetchFromGitHub {
       owner = "Compositional";
@@ -97,8 +97,8 @@
     servant-client-jsaddle = pkgs.fetchFromGitHub {
       owner = "Compositional";
       repo = "servant-client-jsaddle";
-      rev = "c83e5ddfd59047ec22e41bc4314764dc64218267";
-      sha256 = "00ar67a833pd90cw8mn3jmkyfvgphhyrq3b98n13sgsn7abj45sf";
+      rev = "c7278335bb597fd75b29036a43bd870422206efa";
+      sha256 = "1v3bvf4v18s32yxzp33cxf8xfkz5zrajizrifvjr89pph4c743zq";
     };
 
     semantic-reflex = pkgs.fetchFromGitHub {

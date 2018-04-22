@@ -1,42 +1,27 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 module Main where
 
 import Control.Monad (forM, forM_)
 import Data.Default (Default (def))
 import Data.Monoid ((<>))
-import Data.Profunctor (dimap)
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
--- XXX
-import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Servant.Client (mkClientEnv)
-
-import Common ((<<$), (<<$>>))
+import Common ((<<$))
 import Common.Types
 
 import qualified Frontend.Client as Client
 import Frontend.Ouroboros
 
 main :: IO ()
-main = do
-  mgr <- newManager defaultManagerSettings
-  let clientEnv = mkClientEnv mgr Client.serverUrl
-  mainWidgetWithCss css app
+main = mainWidgetWithCss css app
   where
     css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.css);"
 
