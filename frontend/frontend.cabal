@@ -23,10 +23,12 @@ executable frontend
     common,
     containers,
     data-default,
+    lens,
     reflex-dom,
     semantic-reflex,
     servant-reflex,
     text,
-    time
+    time,
+    zippers
   hs-source-dirs:      src
   default-language:    Haskell2010

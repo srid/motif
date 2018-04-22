@@ -21,7 +21,7 @@ import Data.Tree hiding (drawTree)
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
-import Common ((<<$))
+import Common ((<<$), (<<$>>))
 import Common.Types
 
 import qualified Frontend.Client as Client
@@ -30,12 +30,12 @@ import Frontend.Ouroboros
 main :: IO ()
 main = mainWidgetWithCss css app
   where
-    css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.0/semantic.min.css);"
+    css = "@import url(https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.css);"
 
 app :: forall t m. MonadWidget t m => m ()
 app = ouroboros
   (container def . either showError drawTree)
-  (fmap (Client.unzipResult <$>) . Client.sendAction)
+  ((Client.unzipResult <<$>>) . Client.sendAction)
   MotifActionGet
   (text "Loading...")
 
@@ -48,7 +48,7 @@ showError err = do
 drawTree :: MonadWidget t m => Motif -> m (Event t MotifAction)
 drawTree t = segment def $ do
   txt <- _textInput_value <$> textInput def
-  addToInbox <- fmap ((MotifActionAddToInbox <$>) . tagPromptlyDyn txt) $
+  addToInbox <- (MotifActionAddToInbox <$>) . tagPromptlyDyn txt <$> do
     button (def & buttonConfig_type .~ SubmitButton) $ text "Add"
   treeAction <- segment def $ go [unMomentTree $ _motifTree t]
   return $ leftmost [addToInbox, treeAction]

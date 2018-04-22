@@ -76,7 +76,7 @@ motifServer = sendAction
 
 -- | Add a node to the top-level level1 node.
 addNode :: Tree a -> Tree a -> Tree a
-addNode n t@(Node v xs) = Node v $ n : xs
+addNode n (Node v xs) = Node v $ n : xs
 
 deleteNode :: UUID -> Tree (UUID, a, b) -> Tree (UUID, a, b)
 deleteNode id' (Node v xs) = Node v $ deleteNode' id' xs
@@ -87,6 +87,13 @@ deleteNode' id' ts = catMaybes $ fmap go ts
     go (Node v@(id'', _, _) xs) = if id' == id''
       then Nothing
       else Just $ Node v $ catMaybes $ fmap go xs
+
+setState' :: UUID -> NodeState -> MotifTree a -> MotifTree a
+setState' id' state = fmap f
+  where
+    f v@(id'', _oldState, x)
+      | id' == id'' = (id', state, x)
+      | otherwise = v
 
 setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
 setState id' state =
