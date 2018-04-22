@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -24,8 +25,13 @@ import Servant.Reflex
 import Common.Types (Motif, MotifAPI, MotifAction)
 
 -- TODO: Start using ReaderT to specify the jsaddle-warp URL.
+#if defined(ghcjs_HOST_OS)
+serverUrl :: BaseUrl
+serverUrl = BasePath "/"
+#else
 serverUrl :: BaseUrl
 serverUrl = BaseFullUrl Http "localhost" 3001 "/"
+#endif
 
 type SendAction t m = Dynamic t (Either Text MotifAction) -> Event t () -> m (Event t (ReqResult () (Either Text Motif)))
 
