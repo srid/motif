@@ -1,15 +1,8 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 module Main where
 
 import Control.Monad (forM, forM_)
@@ -21,7 +14,7 @@ import Data.Tree hiding (drawTree)
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
-import Common ((<<$), (<<$>>))
+import Common ((<<$))
 import Common.Types
 
 import qualified Frontend.Client as Client
@@ -34,8 +27,8 @@ main = mainWidgetWithCss css app
 
 app :: forall t m. MonadWidget t m => m ()
 app = ouroboros
-  (container def . either showError drawTree)
-  ((Client.unzipResult <<$>>) . Client.sendAction)
+  (container def . either (showError . tshow) (either showError drawTree))
+  Client.sendAction
   MotifActionGet
   (text "Loading...")
 
@@ -44,7 +37,6 @@ showError err = do
   text $ "Error: " <> err
   return never
 
--- 1. Expand collapse, and save 'tree state'
 drawTree :: MonadWidget t m => Motif -> m (Event t MotifAction)
 drawTree t = segment def $ do
   txt <- _textInput_value <$> textInput def
