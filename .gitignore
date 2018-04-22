@@ -1,6 +1,7 @@
 dist*
 result
 frontend-result
+backend-result
 cabal.project.local
 *.code-workspace
 ghcid*txt
