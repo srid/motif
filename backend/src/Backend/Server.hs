@@ -36,7 +36,8 @@ import qualified Backend.Database as Database
 
 -- TODO: Pass basic config to frontend. Mainly to display Db path.
 data Env = Env
-  { _envDbPath :: FilePath
+  { _envPort :: Int
+  , _envDbPath :: FilePath
   , _envAcid :: Acid.AcidState Motif
   }
 
@@ -112,7 +113,7 @@ runServer
 runServer = do
   e <- ask
   liftIO $ putStrLn "Running server at http://localhost:3001/"
-  liftIO $ run 3001 $ corsWithContentType $ logStdoutDev $ static $ app e
+  liftIO $ run (_envPort e) $ corsWithContentType $ logStdoutDev $ static $ app e
   where
     -- | Allow Content-Type header with values other then allowed by simpleCors.
     corsWithContentType = cors (const $ Just policy)

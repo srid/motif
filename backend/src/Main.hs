@@ -12,8 +12,8 @@ import Backend.Server
 
 main :: IO ()
 main = do
-  dbPath <- head <$> getArgs
+  [portStr, dbPath] <- take 2 <$> getArgs
   bracket (openDb dbPath) closeDb $ \db -> do
     createCheckpoint db
     putStrLn $ "Created checkpoint for db " <> dbPath
-    runServer `runReaderT` Env dbPath db
+    runServer `runReaderT` Env (read portStr) dbPath db
