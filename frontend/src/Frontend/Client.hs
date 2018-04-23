@@ -33,7 +33,7 @@ serverUrl :: BaseUrl
 serverUrl = BaseFullUrl Http "localhost" 3001 "/"
 #endif
 
-type SendAction t m = Dynamic t (Either Text MotifAction) -> Event t () -> m (Event t (ReqResult () (Either Text Motif)))
+type SendAction t m = Dynamic t (Either Text MotifAction) -> Event t () -> m (Event t (ReqResult () (Either Text (FilePath, Motif))))
 
 motifClient :: forall t m. MonadWidget t m => SendAction t m
 motifClient = client (Proxy @MotifAPI) (Proxy @m) (Proxy @()) (constDyn serverUrl)
@@ -43,7 +43,7 @@ sendAction' = motifClient
 
 sendAction
   :: forall t m. MonadWidget t m
-  => Event t MotifAction -> m (Event t (ReqResult () (Either Text Motif)))
+  => Event t MotifAction -> m (Event t (ReqResult () (Either Text (FilePath, Motif))))
 sendAction = patchServantClientF sendAction'
 
 -- | Helper to get rid of the Dynamic in servant-reflex functions (of one argument only)

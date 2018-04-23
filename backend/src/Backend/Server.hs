@@ -7,6 +7,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 module Backend.Server (runServer, Env(..)) where
@@ -50,31 +51,35 @@ app e = serve (Proxy @MotifAPI) $
 motifServer :: ServerT MotifAPI AppM
 motifServer = sendAction
   where
-    sendAction :: MotifAction -> AppM (Either Text Motif)
+    sendAction :: MotifAction -> AppM (Either Text (FilePath, Motif))
     sendAction = \case
       MotifActionGet -> do
         db <- reader _envAcid
-        liftIO $ Right <$> Database.get db
+        dbPath <- reader _envDbPath
+        liftIO $ Right . (dbPath,) <$> Database.get db
       MotifActionAddToInbox s -> do
         db <- reader _envAcid
+        dbPath <- reader _envDbPath
         d <- liftIO $ Database.get db
         uuid <- liftIO UUID.nextRandom
         let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
         let motif' = Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
-        return $ Right motif'
+        return $ Right (dbPath, motif')
       MotifActionDelete id' -> do
         db <- reader _envAcid
+        dbPath <- reader _envDbPath
         d <- liftIO $ Database.get db
         let motif' = Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
-        return $ Right motif'
+        return $ Right (dbPath, motif')
       MotifActionSetNodeState id' state -> do
         db <- reader _envAcid
+        dbPath <- reader _envDbPath
         d <- liftIO $ Database.get db
         let motif' = Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
-        return $ Right motif'
+        return $ Right (dbPath, motif')
 
 -- TODO: Replace these set of functions using Tree functor map
 

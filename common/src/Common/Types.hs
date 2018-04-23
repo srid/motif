@@ -82,7 +82,7 @@ data MotifAction
   deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
 
 type MotifAPI =
-  "motif" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text Motif)
+  "motif" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text (FilePath, Motif))
 
 --------------------
 --- Future types!
