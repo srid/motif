@@ -84,25 +84,3 @@ data MotifAction
 type MotifAPI =
   "motif" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text (FilePath, Motif))
 
---------------------
---- Future types!
-data MomentOtherExamples
-  = MomentFoodLog [Context] [(Food, Int)]
-  | MomentActualism [Context] Feeling Content
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
-data Food
-  = Coffee
-  | Croissant
-  | BeefRibeyeGrams
-  | LambBurgerGrams
-  | Egg
-  | Butter
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
-data Feeling
-  = Terrible
-  | Bad
-  | Neutral
-  | Good
-  | Great
-  | Perfect
-  deriving (Generic, Eq, Ord, Show, ToJSON, FromJSON)
