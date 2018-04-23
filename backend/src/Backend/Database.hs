@@ -10,7 +10,7 @@ module Backend.Database
 import Data.Maybe (fromJust)
 import Data.Tree (Tree (Node))
 
-import Data.Acid
+import Data.Acid (AcidState, openLocalStateFrom, closeAcidState, query, update)
 import Data.Default (def)
 
 import qualified Data.UUID as UUID
@@ -20,8 +20,8 @@ import Common.Types (Moment (MomentInbox), MomentTree (MomentTree), Motif (Motif
 
 import Backend.Database.Internal (QueryState (QueryState), WriteState (WriteState))
 
-openDb :: IO (AcidState Motif)
-openDb = openLocalState ini
+openDb :: FilePath -> IO (AcidState Motif)
+openDb = flip openLocalStateFrom ini
   where
     ini = Motif $ MomentTree initialNode
     initialNode = Node (uuid, def, MomentInbox "First item") []

@@ -34,8 +34,10 @@ import Common.Types
 
 import qualified Backend.Database as Database
 
-newtype Env = Env
-  { acid :: Acid.AcidState Motif
+-- TODO: Pass basic config to frontend. Mainly to display Db path.
+data Env = Env
+  { _envDbPath :: FilePath
+  , _envAcid :: Acid.AcidState Motif
   }
 
 type AppM = ReaderT Env Handler
@@ -50,10 +52,10 @@ motifServer = sendAction
     sendAction :: MotifAction -> AppM (Either Text Motif)
     sendAction = \case
       MotifActionGet -> do
-        db <- reader acid
+        db <- reader _envAcid
         liftIO $ Right <$> Database.get db
       MotifActionAddToInbox s -> do
-        db <- reader acid
+        db <- reader _envAcid
         d <- liftIO $ Database.get db
         uuid <- liftIO UUID.nextRandom
         let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
@@ -61,13 +63,13 @@ motifServer = sendAction
         liftIO $ Database.put db motif'
         return $ Right motif'
       MotifActionDelete id' -> do
-        db <- reader acid
+        db <- reader _envAcid
         d <- liftIO $ Database.get db
         let motif' = Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
         return $ Right motif'
       MotifActionSetNodeState id' state -> do
-        db <- reader acid
+        db <- reader _envAcid
         d <- liftIO $ Database.get db
         let motif' = Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree d
         liftIO $ Database.put db motif'
