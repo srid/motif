@@ -39,6 +39,12 @@ Then visit http://localhost:9000/index.html in the browser.
 
 Note that the backend is hardcoded to store the (acid-state) database under `~/Dropbox/Apps/motifdb`.
 
+Should something go wrong, you may view the logs of the service using:
+
+```
+systemctl --user status motifapp
+```
+
 ## Roadmap
 
 See https://github.com/srid/motif/projects/1
