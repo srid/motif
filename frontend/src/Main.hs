@@ -37,28 +37,27 @@ app = ouroboros
   (container def . either showError drawTree)
   ((Client.unzipResult <<$>>) . Client.sendAction)
   MotifActionGet
-  (text "Loading...")
+  (icon "spinner" $ def & iconConfig_loading |~ True)
 
 showError :: UI t m => Text -> m (Event t MotifAction)
-showError err = do
+showError err = message (def & messageConfig_type |?~ MessageType Negative) $ do
   text $ "Error: " <> err
   return never
 
--- 1. Expand collapse, and save 'tree state'
+-- TODO: refactor
 drawTree :: MonadWidget t m => (MotifEnv, Motif) -> m (Event t MotifAction)
 drawTree (motifEnv, t) = segment def $ do
   message def $ text $ "MotifEnv: " <> tshow motifEnv
-  txt <- _textInput_value <$> textInput def
-  addToInbox <- (MotifActionAddToInbox <$>) . tagPromptlyDyn txt <$> do
-    button (def & buttonConfig_type .~ SubmitButton) $ text "Add"
+  addToInbox <- input (def & inputConfig_action |?~ RightAction) $ do
+    txt <- _textInput_value <$> textInput (def & textInputConfig_placeholder |~ "Add to Inbox..")
+    fmap MotifActionAddToInbox . tagPromptlyDyn txt <$> do
+      button def $ text "Add"
   treeAction <- segment def $ go [unMomentTree $ _motifTree t]
   return $ leftmost [addToInbox, treeAction]
   where
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
     go = \case
-      [] -> do
-        blank
-        return never
+      [] -> return never
       xs ->
         fmap leftmost $ list def $ forM xs $ \case
           Node v@(id', _, _) [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
@@ -67,16 +66,20 @@ drawTree (motifEnv, t) = segment def $ do
               forM_ (getContext v) $ label def . text . tshow
             listDescription $ text "Leaf content"
             MotifActionDelete id' <<$ do
-              button (def & buttonConfig_type .~ SubmitButton) $ text "DEL"
+              button (def & buttonConfig_type .~ SubmitButton & buttonConfig_icon |~ True) $
+                icon "delete" (def & iconConfig_color |?~ Red)
           Node v@(id', st, _) xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
-            evt <- listHeader $ do
+            evt <- fmap (domEvent Click . fst) $ listHeader' $
+              -- TODO: hover over mouse cursor
               text $ getText v
-              MotifActionSetNodeState id' (toggleIt st) <<$ button def (text "Collapse")
             listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
             childEvt <- if _nodeStateOpen st
               then go xs'
               else do
                 text "<collapsed>"
                 return never
-            return $ leftmost [evt, childEvt]
+            return $ leftmost [
+                MotifActionSetNodeState id' (toggleIt st) <$ evt
+              , childEvt
+              ]
     toggleIt st = st { _nodeStateOpen = not $ _nodeStateOpen st }

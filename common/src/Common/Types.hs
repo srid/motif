@@ -32,6 +32,7 @@ type MotifTree a = Tree (UUID, NodeState, a)
 instance Default NodeState where
   def = NodeState True True
 
+-- TODO: Add application version (`git describe`)
 data MotifEnv = MotifEnv
   { _motifEnvPort :: Int
   , _motifEnvDbPath :: FilePath
