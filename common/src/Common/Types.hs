@@ -32,6 +32,14 @@ type MotifTree a = Tree (UUID, NodeState, a)
 instance Default NodeState where
   def = NodeState True True
 
+data MotifEnv = MotifEnv
+  { _motifEnvPort :: Int
+  , _motifEnvDbPath :: FilePath
+  }
+  deriving (Generic, Show, Typeable, ToJSON, FromJSON)
+
+-- | The main application type that is serialized over the wire
+--   and in the database (acid-state)
 newtype Motif = Motif
   { _motifTree :: MomentTree
   }
@@ -81,6 +89,6 @@ data MotifAction
   | MotifActionSetNodeState UUID NodeState
   deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
 
-type MotifAPI =
-  "motif" :> ReqBody '[JSON] MotifAction :> Post '[JSON] (Either Text (FilePath, Motif))
-
+type MotifAPI = "motif"
+  :> ReqBody '[JSON] MotifAction
+  :> Post '[JSON] (Either Text (MotifEnv, Motif))

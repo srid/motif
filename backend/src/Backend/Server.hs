@@ -10,7 +10,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
-module Backend.Server (runServer, Env(..)) where
+module Backend.Server (runServer, Config(..)) where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
@@ -35,53 +35,42 @@ import Common.Types
 
 import qualified Backend.Database as Database
 
--- TODO: Pass basic config to frontend. Mainly to display Db path.
-data Env = Env
-  { _envPort :: Int
-  , _envDbPath :: FilePath
-  , _envAcid :: Acid.AcidState Motif
+data Config = Config
+  { _configMotifEnv :: MotifEnv
+  , _configDb :: Acid.AcidState Motif
   }
 
-type AppM = ReaderT Env Handler
+type AppM = ReaderT Config Handler
 
-app :: Env -> Application
+app :: Config -> Application
 app e = serve (Proxy @MotifAPI) $
   hoistServer (Proxy @MotifAPI) (`runReaderT` e) motifServer
 
 motifServer :: ServerT MotifAPI AppM
 motifServer = sendAction
   where
-    sendAction :: MotifAction -> AppM (Either Text (FilePath, Motif))
+    sendAction :: MotifAction -> AppM (Either Text (MotifEnv, Motif))
     sendAction = \case
-      MotifActionGet -> do
-        db <- reader _envAcid
-        dbPath <- reader _envDbPath
-        liftIO $ Right . (dbPath,) <$> Database.get db
-      MotifActionAddToInbox s -> do
-        db <- reader _envAcid
-        dbPath <- reader _envDbPath
-        d <- liftIO $ Database.get db
-        uuid <- liftIO UUID.nextRandom
+      MotifActionGet -> withConfig $ \db -> Database.get db
+      MotifActionAddToInbox s -> editMotif $ \motif0 -> do
+        uuid <- UUID.nextRandom
         let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
-        let motif' = Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree d
-        liftIO $ Database.put db motif'
-        return $ Right (dbPath, motif')
-      MotifActionDelete id' -> do
-        db <- reader _envAcid
-        dbPath <- reader _envDbPath
-        d <- liftIO $ Database.get db
-        let motif' = Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree d
-        liftIO $ Database.put db motif'
-        return $ Right (dbPath, motif')
-      MotifActionSetNodeState id' state -> do
-        db <- reader _envAcid
-        dbPath <- reader _envDbPath
-        d <- liftIO $ Database.get db
-        let motif' = Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree d
-        liftIO $ Database.put db motif'
-        return $ Right (dbPath, motif')
+        pure $ Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree motif0
+      MotifActionDelete id' -> editMotif $ \motif0 ->
+        pure $ Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree motif0
+      MotifActionSetNodeState id' state -> editMotif $ \motif0 ->
+        pure $ Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree motif0
+    editMotif f = withConfig $ \db -> do
+      motif0 <- Database.get db
+      motif1 <- f motif0
+      Database.put db motif1
+      return motif1
+    withConfig f = do
+      config <- ask
+      -- TODO: Will need to handle errors (Left) at some point.
+      liftIO $ Right . (_configMotifEnv config, ) <$> f (_configDb config)
 
--- TODO: Replace these set of functions using Tree functor map
+-- TODO: Replace these set of functions using Tree Zipper.
 
 -- | Add a node to the top-level level1 node.
 addNode :: Tree a -> Tree a -> Tree a
@@ -97,28 +86,24 @@ deleteNode' id' ts = catMaybes $ fmap go ts
       then Nothing
       else Just $ Node v $ catMaybes $ fmap go xs
 
-setState' :: UUID -> NodeState -> MotifTree a -> MotifTree a
-setState' id' state = fmap f
+setState :: UUID -> NodeState -> MotifTree a -> MotifTree a
+setState id' state = fmap f
   where
     f v@(id'', _oldState, x)
       | id' == id'' = (id', state, x)
       | otherwise = v
 
-setState :: UUID -> NodeState -> MotifTree Moment -> MotifTree Moment
-setState id' state =
-  \case
-    Node v@(id'', _oldState, x) c ->
-      if id'' == id'
-        then Node (id', state, x) c
-        else Node v $ setState id' state <$> c
-
 runServer
-  :: (Functor m, MonadReader Env m, MonadIO m)
+  :: (Functor m, MonadReader Config m, MonadIO m)
   => m ()
 runServer = do
   e <- ask
   liftIO $ putStrLn "Running server at http://localhost:3001/"
-  liftIO $ run (_envPort e) $ corsWithContentType $ logStdoutDev $ static $ app e
+  liftIO $ run (_motifEnvPort $ _configMotifEnv e)
+    $ corsWithContentType
+    $ logStdoutDev
+    $ static
+    $ app e
   where
     -- | Allow Content-Type header with values other then allowed by simpleCors.
     corsWithContentType = cors (const $ Just policy)

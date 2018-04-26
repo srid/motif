@@ -45,9 +45,9 @@ showError err = do
   return never
 
 -- 1. Expand collapse, and save 'tree state'
-drawTree :: MonadWidget t m => (FilePath, Motif) -> m (Event t MotifAction)
-drawTree (dbPath, t) = segment def $ do
-  message def $ text $ "Using DB: " <> tshow dbPath
+drawTree :: MonadWidget t m => (MotifEnv, Motif) -> m (Event t MotifAction)
+drawTree (motifEnv, t) = segment def $ do
+  message def $ text $ "MotifEnv: " <> tshow motifEnv
   txt <- _textInput_value <$> textInput def
   addToInbox <- (MotifActionAddToInbox <$>) . tagPromptlyDyn txt <$> do
     button (def & buttonConfig_type .~ SubmitButton) $ text "Add"
