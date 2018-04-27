@@ -45,7 +45,7 @@ showError err = message (def & messageConfig_type |?~ MessageType Negative) $ do
   return never
 
 -- TODO: refactor
-drawTree :: MonadWidget t m => (MotifEnv, Motif) -> m (Event t MotifAction)
+drawTree :: MonadWidget t m => MotifResponse -> m (Event t MotifAction)
 drawTree (motifEnv, t) = segment def $ do
   message def $ text $ "MotifEnv: " <> tshow motifEnv
   addToInbox <- input (def & inputConfig_action |?~ RightAction) $ do

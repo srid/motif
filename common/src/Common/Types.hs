@@ -90,6 +90,9 @@ data MotifAction
   | MotifActionSetNodeState UUID NodeState
   deriving (Generic, Eq, Show, Ord, ToJSON, FromJSON)
 
+-- | Response that gets sent over the wire.
+type MotifResponse = (MotifEnv, Motif)
+
 type MotifAPI = "motif"
   :> ReqBody '[JSON] MotifAction
-  :> Post '[JSON] (Either Text (MotifEnv, Motif))
+  :> Post '[JSON] (Either Text MotifResponse)
