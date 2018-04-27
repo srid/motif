@@ -17,6 +17,7 @@ import Control.Monad.Reader
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.Tree
+import Data.Tree.Zipper
 
 import qualified Data.Acid as Acid
 import Data.Default (def)
@@ -49,26 +50,28 @@ app e = serve (Proxy @MotifAPI) $
 motifServer :: ServerT MotifAPI AppM
 motifServer = sendAction
   where
-    sendAction :: MotifAction -> AppM (Either Text (MotifEnv, Motif))
+    sendAction :: MotifAction -> AppM (Either Text MotifResponse)
     sendAction = \case
-      MotifActionGet -> withConfig $ \db -> Database.get db
-      MotifActionAddToInbox s -> editMotif $ \motif0 -> do
+      MotifActionGet -> withConfig $ fmap fromTree . getTree
+      MotifActionAddToInbox s -> editMotif $ \tree0 -> do
         uuid <- UUID.nextRandom
         let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
-        pure $ Motif $ MomentTree $ addNode node $ unMomentTree $ _motifTree motif0
-      MotifActionDelete id' -> editMotif $ \motif0 ->
-        pure $ Motif $ MomentTree $ deleteNode id' $ unMomentTree $ _motifTree motif0
-      MotifActionSetNodeState id' state -> editMotif $ \motif0 ->
-        pure $ Motif $ MomentTree $ setState id' state $ unMomentTree $ _motifTree motif0
+        pure $ addNode node tree0
+      MotifActionDelete id' -> editMotif $ \tree0 ->
+        pure $ deleteNode id' tree0
+      MotifActionSetNodeState id' state -> editMotif $ \tree0 ->
+        pure $ setState id' state tree0
     editMotif f = withConfig $ \db -> do
-      motif0 <- Database.get db
-      motif1 <- f motif0
-      Database.put db motif1
-      return motif1
+      tree0 <- getTree db
+      tree1 <- f tree0
+      putTree db tree1
+      return $ fromTree tree1
     withConfig f = do
       config <- ask
       -- TODO: Will need to handle errors (Left) at some point.
       liftIO $ Right . (_configMotifEnv config, ) <$> f (_configDb config)
+    getTree = fmap (unMomentTree . _motifTree) . Database.get
+    putTree db = Database.put db . Motif . MomentTree
 
 -- TODO: Replace these set of functions using Tree Zipper.
 

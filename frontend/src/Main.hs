@@ -17,6 +17,7 @@ import Data.Default (Default (def))
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
+import Data.Tree.Zipper hiding (label)
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
@@ -46,13 +47,13 @@ showError err = message (def & messageConfig_type |?~ MessageType Negative) $ do
 
 -- TODO: refactor
 drawTree :: MonadWidget t m => MotifResponse -> m (Event t MotifAction)
-drawTree (motifEnv, t) = segment def $ do
+drawTree (motifEnv, treePos) = segment def $ do
   message def $ text $ "MotifEnv: " <> tshow motifEnv
   addToInbox <- input (def & inputConfig_action |?~ RightAction) $ do
     txt <- _textInput_value <$> textInput (def & textInputConfig_placeholder |~ "Add to Inbox..")
     fmap MotifActionAddToInbox . tagPromptlyDyn txt <$> do
       button def $ text "Add"
-  treeAction <- segment def $ go [unMomentTree $ _motifTree t]
+  treeAction <- segment def $ go [toTree treePos]
   return $ leftmost [addToInbox, treeAction]
   where
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
