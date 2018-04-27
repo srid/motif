@@ -17,7 +17,7 @@ import Data.Default (Default (def))
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
-import Data.Tree.Zipper hiding (label)
+import qualified Data.Tree.Zipper as T
 
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
@@ -53,9 +53,16 @@ drawTree (motifEnv, treePos) = segment def $ do
     txt <- _textInput_value <$> textInput (def & textInputConfig_placeholder |~ "Add to Inbox..")
     fmap MotifActionAddToInbox . tagPromptlyDyn txt <$> do
       button def $ text "Add"
-  treeAction <- segment def $ go [toTree treePos]
-  return $ leftmost [addToInbox, treeAction]
+  x :: Event t MotifAction <- segment def $ go2 treePos
+  treeAction <- segment def $ go [T.toTree treePos]
+  return $ leftmost [addToInbox, treeAction, x]
   where
+    out = segment def . el "tt" . text . tshow
+    go2 t = do
+      out $ getText $ T.label t
+      case T.firstChild t of
+        Nothing -> text "end" >> return never
+        Just x -> go2 x
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
     go = \case
       [] -> return never
