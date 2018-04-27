@@ -52,7 +52,7 @@ drawTree (motifEnv, t) = segment def $ do
     txt <- _textInput_value <$> textInput (def & textInputConfig_placeholder |~ "Add to Inbox..")
     fmap MotifActionAddToInbox . tagPromptlyDyn txt <$> do
       button def $ text "Add"
-  treeAction <- segment def $ go [unMomentTree $ _motifTree t]
+  treeAction <- segment def $ go [t]
   return $ leftmost [addToInbox, treeAction]
   where
     go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
