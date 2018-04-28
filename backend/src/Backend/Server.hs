@@ -72,12 +72,11 @@ motifServer = sendAction
     getTree = fmap (unMomentTree . _motifTree) . Database.get
     putTree db = Database.put db . Motif . MomentTree
 
--- TODO: Replace these set of functions using Tree Zipper.
-
 -- | Add a node to the top-level level1 node.
 addNode :: Tree a -> Tree a -> Tree a
 addNode n (Node v xs) = Node v $ n : xs
 
+-- TODO: Handle the case with non-empty children.
 deleteNode :: UUID -> Tree (UUID, a, b) -> Tree (UUID, a, b)
 deleteNode id' (Node v xs) = Node v $ deleteNode' id' xs
 
