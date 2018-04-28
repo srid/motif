@@ -1,41 +1,22 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 module Common.Types where
 
-import qualified Data.ByteString.Lazy.Char8 as BC
-import Data.Default
-import Data.Monoid ((<>))
-import Data.String (IsString (fromString))
 import Data.Text (Text)
 import Data.Tree
 import Data.Typeable
 import Data.UUID (UUID)
 import GHC.Generics
-import Network.HTTP.Media ((//), (/:))
-import Text.Read (readMaybe)
 
-import qualified Data.Text as T
 import Servant.API
 
-data NodeState = NodeState
-  { _nodeStateDummy :: Bool
-  , _nodeStateOpen :: Bool
-  }
-  deriving (Generic, Eq, Ord, Show, Read)
-
-type MotifTree a = Tree (UUID, NodeState, a)
-
-instance Default NodeState where
-  def = NodeState True True
+import Common.Internal (HaskellType)
 
 -- TODO: Add application version (`git describe`)
 data MotifEnv = MotifEnv
@@ -44,26 +25,26 @@ data MotifEnv = MotifEnv
   }
   deriving (Generic, Show, Typeable, Read)
 
+data MotifNode = MotifNode
+  { _motifNodeID :: UUID
+  , _motifNodeOpen :: Bool
+  , _motifNodeValue :: Moment
+  }
+  deriving (Generic, Eq, Ord, Show, Read)
+
 -- | The main application type that is serialized over the wire
 --   and in the database (acid-state)
 newtype Motif = Motif
-  { _motifTree :: MomentTree
+  { _motifTree :: Tree MotifNode
   }
   deriving (Generic, Show, Typeable, Read)
 
-newtype MomentTree = MomentTree { unMomentTree :: MotifTree Moment }
-  deriving (Generic, Eq, Show, Read)
+type Content = Text
 
 data Moment
   = MomentInbox Content  -- ^ Simplest content type; just text.
   | MomentJournal [Context] Content
   deriving (Generic, Eq, Ord, Show, Read)
-
-newtype Content = Content { unContent :: Text }
-  deriving (Generic, Eq, Ord, Show, Read)
-
-instance IsString Content where
-  fromString = Content . T.pack
 
 data Context
   = ContextNone
@@ -81,38 +62,24 @@ instance IsMoment Moment where
     MomentInbox _ -> []
     MomentJournal v _ -> v
   getText = \case
-    MomentInbox s -> unContent s
-    MomentJournal _ s -> unContent s
+    MomentInbox s -> s
+    MomentJournal _ s -> s
 
-instance IsMoment c => IsMoment (a, b, c) where
-  getContext (_, _, x) = getContext x
-  getText (_, _, x) = getText x
+instance IsMoment MotifNode where
+  getContext = getContext . _motifNodeValue
+  getText = getText . _motifNodeValue
 
 data MotifAction
   = MotifActionGet
-  | MotifActionAddToInbox Text
+  | MotifActionAddToInbox Content
   | MotifActionDelete UUID
-  | MotifActionSetNodeState UUID NodeState
+  | MotifActionSetOpen UUID Bool
   deriving (Generic, Eq, Show, Ord, Read)
 
 -- | Response that gets sent over the wire.
 -- TODO: Fix the type alias madness
-type MotifResponse = (MotifEnv, MotifTree Moment)
+type MotifResponse = (MotifEnv, Tree MotifNode)
 
 type MotifAPI = "motif"
   :> ReqBody '[HaskellType] MotifAction
   :> Post '[HaskellType] (Either Text MotifResponse)
-
-
-data HaskellType
-
-instance Accept HaskellType where
-  contentType _ = "text" // "haskell" /: ("charset", "utf-8")
-
-instance Show a => MimeRender HaskellType a where
-  mimeRender _ = BC.pack . show
-
-instance Read a => MimeUnrender HaskellType a where
-  mimeUnrender _ = f . BC.unpack
-    where
-      f s = maybe (Left ("Bad text: " <> s)) Right $ readMaybe s

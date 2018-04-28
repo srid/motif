@@ -13,7 +13,6 @@
 module Main where
 
 import Control.Monad (forM, forM_)
-import Data.Default (Default (def))
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Tree hiding (drawTree)
@@ -55,31 +54,30 @@ drawTree (motifEnv, t) = segment def $ do
   treeAction <- segment def $ go [t]
   return $ leftmost [addToInbox, treeAction]
   where
-    go :: UI t m => [MotifTree Moment] -> m (Event t MotifAction)
+    go :: UI t m => [Tree MotifNode] -> m (Event t MotifAction)
     go = \case
       [] -> return never
       xs ->
         fmap leftmost $ list def $ forM xs $ \case
-          Node v@(id', _, _) [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+          Node node [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
             listHeader $ do
-              text $ getText v
-              forM_ (getContext v) $ label def . text . tshow
+              text $ getText node
+              forM_ (getContext node) $ label def . text . tshow
             listDescription $ text "Leaf content"
-            MotifActionDelete id' <<$ do
+            MotifActionDelete (_motifNodeID node) <<$ do
               button (def & buttonConfig_type .~ SubmitButton & buttonConfig_icon |~ True) $
                 icon "delete" (def & iconConfig_color |?~ Red)
-          Node v@(id', st, _) xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
+          Node node xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
             evt <- fmap (domEvent Click . fst) $ listHeader' $
               -- TODO: hover over mouse cursor
-              text $ getText v
+              text $ getText node
             listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
-            childEvt <- if _nodeStateOpen st
+            childEvt <- if _motifNodeOpen node
               then go xs'
               else do
                 text "<collapsed>"
                 return never
             return $ leftmost [
-                MotifActionSetNodeState id' (toggleIt st) <$ evt
+                MotifActionSetOpen (_motifNodeID node) (not $ _motifNodeOpen node) <$ evt
               , childEvt
               ]
-    toggleIt st = st { _nodeStateOpen = not $ _nodeStateOpen st }

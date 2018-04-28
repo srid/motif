@@ -23,13 +23,11 @@ import Common.Types
 
 -- These are explicitly orphan instances as the frontend doesn't need to know
 -- about serialization or have `safe-copy` as a dependency.
-$(deriveSafeCopy 1 'base ''Motif)
-$(deriveSafeCopy 0 'base ''MomentTree)
+$(deriveSafeCopy 2 'base ''Motif)
+$(deriveSafeCopy 0 'base ''MotifNode)
 $(deriveSafeCopy 0 'base ''UUID)
-$(deriveSafeCopy 0 'base ''NodeState)
 $(deriveSafeCopy 0 'base ''Moment)
 $(deriveSafeCopy 0 'base ''Context)
-$(deriveSafeCopy 0 'base ''Content)
 
 writeState :: Motif -> Update Motif ()
 writeState = put

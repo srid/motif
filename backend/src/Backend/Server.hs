@@ -19,7 +19,6 @@ import Data.Text (Text)
 import Data.Tree
 
 import qualified Data.Acid as Acid
-import Data.Default (def)
 import Data.UUID (UUID)
 import qualified Data.UUID.V4 as UUID
 
@@ -54,12 +53,13 @@ motifServer = sendAction
       MotifActionGet -> withConfig getTree
       MotifActionAddToInbox s -> editMotif $ \tree0 -> do
         uuid <- UUID.nextRandom
-        let node = Node (uuid, def :: NodeState, MomentInbox (Content s)) []
-        pure $ addNode node tree0
+        let node = MotifNode uuid True $ MomentInbox s
+        pure $ addLevel2Child (Node node []) tree0
       MotifActionDelete id' -> editMotif $ \tree0 ->
-        pure $ deleteNode id' tree0
-      MotifActionSetNodeState id' state -> editMotif $ \tree0 ->
-        pure $ setState id' state tree0
+        -- FIXME: don't use head
+        pure $ head $ findAndMap' (isUUID id') (const Nothing) [tree0]
+      MotifActionSetOpen id' isOpen -> editMotif $ \tree0 ->
+        pure $ findAndMap (isUUID id') (\(Node node xs) -> Node (node { _motifNodeOpen = isOpen}) xs) tree0
     editMotif f = withConfig $ \db -> do
       tree0 <- getTree db
       tree1 <- f tree0
@@ -69,30 +69,33 @@ motifServer = sendAction
       config <- ask
       -- TODO: Will need to handle errors (Left) at some point.
       liftIO $ Right . (_configMotifEnv config, ) <$> f (_configDb config)
-    getTree = fmap (unMomentTree . _motifTree) . Database.get
-    putTree db = Database.put db . Motif . MomentTree
+    getTree = fmap _motifTree . Database.get
+    putTree db = Database.put db . Motif
 
 -- | Add a node to the top-level level1 node.
-addNode :: Tree a -> Tree a -> Tree a
-addNode n (Node v xs) = Node v $ n : xs
+addLevel2Child :: Tree a -> Tree a -> Tree a
+addLevel2Child n (Node v xs) = Node v $ n : xs
 
--- TODO: Handle the case with non-empty children.
-deleteNode :: UUID -> Tree (UUID, a, b) -> Tree (UUID, a, b)
-deleteNode id' (Node v xs) = Node v $ deleteNode' id' xs
+-- | TODO: Use this instead of above.
+addChild :: UUID -> MotifNode -> Tree MotifNode -> Tree MotifNode
+addChild u v = findAndMap (isUUID u) (\(Node x xs) -> Node x $ newNode v : xs)
+  where newNode x = Node x []
 
-deleteNode' :: UUID -> Forest (UUID, a, b) -> Forest (UUID, a, b)
-deleteNode' id' ts = catMaybes $ fmap go ts
-  where
-    go (Node v@(id'', _, _) xs) = if id' == id''
-      then Nothing
-      else Just $ Node v $ catMaybes $ fmap go xs
+findAndMap :: (a -> Bool) -> (Tree a -> Tree a) -> Tree a -> Tree a
+findAndMap p f t@(Node v ns)
+  | p v = f t
+  -- FIXME: should operate only on one child.
+  | otherwise = Node v $ map (findAndMap p f) ns
 
-setState :: UUID -> NodeState -> MotifTree a -> MotifTree a
-setState id' state = fmap f
-  where
-    f v@(id'', _oldState, x)
-      | id' == id'' = (id', state, x)
-      | otherwise = v
+findAndMap' :: (a -> Bool) -> (Tree a -> Maybe (Tree a)) -> Forest a -> Forest a
+findAndMap' _ _ [] = []
+findAndMap' p f t' = catMaybes $ fmap g t'
+  where g t@(Node v ns)
+          | p v = f t
+          | otherwise = Just $ Node v $ findAndMap' p f ns
+
+isUUID :: UUID -> MotifNode -> Bool
+isUUID x n = x == _motifNodeID n
 
 runServer
   :: (Functor m, MonadReader Config m, MonadIO m)
