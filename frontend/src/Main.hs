@@ -43,41 +43,44 @@ showError err = message (def & messageConfig_type |?~ MessageType Negative) $ do
   text $ "Error: " <> err
   return never
 
+-- | Text input that triggers on hitting enter.
+quickEntry :: MonadWidget t m => Text -> m (Event t Text)
+quickEntry placeholder = input def $ do
+  textInp <- textInput (def & textInputConfig_placeholder |~ placeholder)
+  let txt = _textInput_value textInp
+  let send = () <$ ffilter (== 13) (_textInput_keypress textInp)
+  return $ tagPromptlyDyn txt send
+
 -- TODO: refactor
 drawTree :: MonadWidget t m => MotifResponse -> m (Event t MotifAction)
 drawTree (motifEnv, t) = segment def $ do
   message def $ text $ "MotifEnv: " <> tshow motifEnv
-  addToInbox <- input (def & inputConfig_action |?~ RightAction) $ do
-    txt <- _textInput_value <$> textInput (def & textInputConfig_placeholder |~ "Add to Inbox..")
-    fmap MotifActionAddToInbox . tagPromptlyDyn txt <$> do
-      button def $ text "Add"
+  addToInbox <- quickEntry "Add to Inbox..."
   treeAction <- segment def $ go [t]
-  return $ leftmost [addToInbox, treeAction]
+  return $ leftmost [
+      treeAction
+    , MotifActionAddToInbox <$> addToInbox
+    ]
   where
+    actionButton :: UI t m => Active t Text -> Color -> m (Event t ())
+    actionButton iconName color = button (def & buttonConfig_icon |~ True) $
+      icon iconName (def & iconConfig_color |?~ color)
+    drawNode :: UI t m => MotifNode -> m (Event t MotifAction)
+    drawNode node = listItem (def & listItemConfig_preContent ?~ icon "sticky note outline" def) $
+      listHeader $ do
+        text $ getText node
+        forM_ (getContext node) $ label def . text . tshow
+        MotifActionDelete (_motifNodeID node) <<$ actionButton "delete" Red
     go :: UI t m => [Tree MotifNode] -> m (Event t MotifAction)
     go = \case
       [] -> return never
       xs ->
         fmap leftmost $ list def $ forM xs $ \case
-          Node node [] -> listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
-            listHeader $ do
-              text $ getText node
-              forM_ (getContext node) $ label def . text . tshow
-            listDescription $ text "Leaf content"
-            MotifActionDelete (_motifNodeID node) <<$ do
-              button (def & buttonConfig_type .~ SubmitButton & buttonConfig_icon |~ True) $
-                icon "delete" (def & iconConfig_color |?~ Red)
-          Node node xs' -> listItem (def & listItemConfig_preContent ?~ icon "folder" def) $ do
-            evt <- fmap (domEvent Click . fst) $ listHeader' $
-              -- TODO: hover over mouse cursor
-              text $ getText node
-            listDescription $ text $ "Node w/ " <> tshow (length xs') <> " children"
-            childEvt <- if _motifNodeOpen node
+          Node node [] -> drawNode node
+          Node node xs' -> do
+            evt <- drawNode node
+            -- TODO: resurrect collapse behavour
+            childEvt <- segment def $ if _motifNodeOpen node
               then go xs'
-              else do
-                text "<collapsed>"
-                return never
-            return $ leftmost [
-                MotifActionSetOpen (_motifNodeID node) (not $ _motifNodeOpen node) <$ evt
-              , childEvt
-              ]
+              else text "<collapsed>" >> return never
+            return $ leftmost [evt, childEvt]
