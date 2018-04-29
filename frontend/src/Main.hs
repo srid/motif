@@ -20,7 +20,7 @@ import Data.Tree hiding (drawTree)
 import Reflex.Dom (mainWidgetWithCss)
 import Reflex.Dom.SemanticUI hiding (mainWidgetWithCss)
 
-import Common ((<<$), (<<$>>))
+import Common ((<<$>>))
 import Common.Types
 
 import qualified Frontend.Client as Client
@@ -51,7 +51,6 @@ quickEntry placeholder = input def $ do
   let send = () <$ ffilter (== 13) (_textInput_keypress textInp)
   return $ tagPromptlyDyn txt send
 
--- TODO: refactor
 drawTree :: MonadWidget t m => MotifResponse -> m (Event t MotifAction)
 drawTree (motifEnv, t) = segment def $ do
   message def $ text $ "MotifEnv: " <> tshow motifEnv
@@ -65,22 +64,29 @@ drawTree (motifEnv, t) = segment def $ do
     actionButton :: UI t m => Active t Text -> Color -> m (Event t ())
     actionButton iconName color = button (def & buttonConfig_icon |~ True) $
       icon iconName (def & iconConfig_color |?~ color)
-    drawNode :: UI t m => MotifNode -> m (Event t MotifAction)
-    drawNode node = listItem (def & listItemConfig_preContent ?~ icon "sticky note outline" def) $
-      listHeader $ do
+    drawNode :: UI t m => MotifNode -> m (Event t MotifAction) -> m (Event t MotifAction)
+    drawNode node extra = listItem (def & listItemConfig_preContent ?~ icon "file" def) $ do
+      title <- fmap fst $ listHeader' $ do
         text $ getText node
         forM_ (getContext node) $ label def . text . tshow
-        MotifActionDelete (_motifNodeID node) <<$ actionButton "delete" Red
+      deleteNode <- listDescription $
+        actionButton "delete" Red
+      extraEvt <- extra
+      return $ leftmost
+        [ MotifActionDelete (_motifNodeID node) <$ deleteNode
+        , MotifActionSetOpen (_motifNodeID node) (not $ _motifNodeOpen node) <$  domEvent Click title
+        -- TODO: This should open editor.
+        , MotifActionSetOpen (_motifNodeID node) (not $ _motifNodeOpen node) <$  domEvent Dblclick title
+        , extraEvt]
     go :: UI t m => [Tree MotifNode] -> m (Event t MotifAction)
     go = \case
       [] -> return never
       xs ->
-        fmap leftmost $ list def $ forM xs $ \case
-          Node node [] -> drawNode node
-          Node node xs' -> do
-            evt <- drawNode node
-            -- TODO: resurrect collapse behavour
-            childEvt <- segment def $ if _motifNodeOpen node
-              then go xs'
-              else text "<collapsed>" >> return never
-            return $ leftmost [evt, childEvt]
+        fmap leftmost $ list def $ forM xs $ \(Node node children) ->
+          drawNode node $ case children of
+            [] -> return never
+            _ -> if _motifNodeOpen node
+              then go children
+              else do
+                el "div" $ text "<collapsed>"
+                return never
